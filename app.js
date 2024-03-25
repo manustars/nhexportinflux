@@ -7,8 +7,7 @@ const influx = new Influx.InfluxDB({
   host: process.env.INFLUXDB_HOST,
   port: process.env.INFLUXDB_PORT,
   database: process.env.INFLUXDB_DB,
-  username: process.env.INFLUXDB_ADMIN_USER,
-  password: process.env.INFLUXDB_ADMIN_PASSWORD,
+  token: process.env.INFLUXDB_TOKEN,
 });
 
 // Crea un'istanza del client NiceHash utilizzando le variabili d'ambiente
