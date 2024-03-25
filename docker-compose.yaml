@@ -1,7 +1,7 @@
 version: '3.1'
 services:
   nicehash-exporter:
-    build: .
+    image: manustar/nhexportinflux:latest
     restart: unless-stopped
     environment:
       - NH_API_KEY=your_nicehash_api_key
@@ -10,5 +10,4 @@ services:
       - INFLUXDB_HOST=host_of_your_influxdb_instance
       - INFLUXDB_PORT=8086
       - INFLUXDB_DATABASE=nicehash
-      - INFLUXDB_USER=admin
-      - INFLUXDB_PASSWORD=admin
+      - INFLUXDB_TOKEN=your_influxdb_access_token
