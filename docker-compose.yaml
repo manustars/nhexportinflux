@@ -1,0 +1,14 @@
+version: '3.1'
+services:
+  nicehash-exporter:
+    build: .
+    restart: unless-stopped
+    environment:
+      - NH_API_KEY=your_nicehash_api_key
+      - NH_API_SECRET=your_nicehash_api_secret
+      - NH_API_ORG_ID=your_nicehash_organization_id
+      - INFLUXDB_HOST=host_of_your_influxdb_instance
+      - INFLUXDB_PORT=8086
+      - INFLUXDB_DATABASE=nicehash
+      - INFLUXDB_USER=admin
+      - INFLUXDB_PASSWORD=admin
