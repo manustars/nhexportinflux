@@ -1,111 +1,55 @@
-// Definizione delle classi MiningRigGroup, MiningRig e Device
-class MiningRigGroup {
-    constructor(groupName, minerStatuses, rigTypes, totalRigs, totalProfitability, groupPowerMode, groupBundle, totalDevices, devicesStatuses, unpaidAmount, hasV4Rigs) {
-        this.groupName = groupName;
-        this.minerStatuses = minerStatuses;
-        this.rigTypes = rigTypes;
-        this.totalRigs = totalRigs;
-        this.totalProfitability = totalProfitability;
-        this.groupPowerMode = groupPowerMode;
-        this.groupBundle = groupBundle;
-        this.totalDevices = totalDevices;
-        this.devicesStatuses = devicesStatuses;
-        this.unpaidAmount = unpaidAmount;
-        this.hasV4Rigs = hasV4Rigs;
-    }
+const NicehashJS = require('./nicehash');
+const client = require('prom-client');
+const Gauge = client.Gauge;
+const express = require('express');
+require('dotenv').config();
+
+// Impostazioni
+const port = process.env.PORT || 3000;
+const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30;
+const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || '';
+const prefix = process.env.NH_METRICS_PREFIX || 'nh_';
+const apiKey = process.env.NH_API_KEY;
+const apiSecret = process.env.NH_API_SECRET;
+const organizationId = process.env.NH_API_ORG_ID;
+const rates = process.env.NH_RATES ? process.env.NH_RATES.split(',') : ['BTCUSDC', 'BTCEURS'];
+
+if (!apiKey || !apiSecret || !organizationId) {
+  console.log("You need an api key and an api secret and orgId!");
+  console.log("https://www.nicehash.com/my/settings/keys");
+  return 1;
 }
 
-class MiningRig {
-    constructor(rigId, type, name, statusTime, joinTime, minerStatus, groupName, unpaidAmount, notifications, softwareVersions, devices) {
-        this.rigId = rigId;
-        this.type = type;
-        this.name = name;
-        this.statusTime = statusTime;
-        this.joinTime = joinTime;
-        this.minerStatus = minerStatus;
-        this.groupName = groupName;
-        this.unpaidAmount = unpaidAmount;
-        this.notifications = notifications;
-        this.softwareVersions = softwareVersions;
-        this.devices = devices;
-    }
-}
-
-class Device {
-    constructor(id, name, deviceType, status, temperature, load, revolutionsPerMinute, revolutionsPerMinutePercentage, powerMode, powerUsage, speeds, intensity, nhqm) {
-        this.id = id;
-        this.name = name;
-        this.deviceType = deviceType;
-        this.status = status;
-        this.temperature = temperature;
-        this.load = load;
-        this.revolutionsPerMinute = revolutionsPerMinute;
-        this.revolutionsPerMinutePercentage = revolutionsPerMinutePercentage;
-        this.powerMode = powerMode;
-        this.powerUsage = powerUsage;
-        this.speeds = speeds;
-        this.intensity = intensity;
-        this.nhqm = nhqm;
-    }
-}
-
-const NicehashJS = require('./nicehash')
-const client = require('prom-client')
-const Gauge = client.Gauge
-const express = require('express')
-require('dotenv').config()
-
-// settings
-
-const port = process.env.PORT || 3000
-const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30
-const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || ''
-const prefix = process.env.NH_METRICS_PREFIX || 'nh_'
-const apiKey = process.env.NH_API_KEY
-const apiSecret = process.env.NH_API_SECRET
-const organizationId = process.env.NH_API_ORG_ID
-const rates = process.env.NH_RATES ? process.env.NH_RATES.split(',') : ['BTCUSDC', 'BTCEURS']
-
-if(!apiKey || !apiSecret || !organizationId) {
-  console.log("You need an api key and an api secret and orgId!")
-  console.log("https://www.nicehash.com/my/settings/keys")
-  return 1
-}
-
-// init libs
-const app = express()
-
+// Inizializzazione delle librerie
+const app = express();
 const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics({prefix: nodeMetricsPrefix})
-
+collectDefaultMetrics({ prefix: nodeMetricsPrefix });
 const register = client.register;
-
 const nhClient = new NicehashJS({
   apiKey,
   apiSecret,
   organizationId
 });
 
-// metrics
-
+// Metriche
 const totalRigs = new Gauge({
   name: prefix + 'total_rigs',
   help: 'Number of rigs you own'
 });
 const totalDevices = new Gauge({
-  name: prefix +'total_devices',
+  name: prefix + 'total_devices',
   help: 'Number of devices in the rigs'
 });
 const totalProfitability = new Gauge({
-  name: prefix +'total_profitability',
+  name: prefix + 'total_profitability',
   help: 'totalProfitability'
 });
 const unpaidAmount = new Gauge({
-  name: prefix +'unpaid_amount',
+  name: prefix + 'unpaid_amount',
   help: 'unpaidAmount'
 });
 const totalBtc = new Gauge({
-  name: prefix +'total_btc',
+  name: prefix + 'total_btc',
   help: 'totalBtc',
 });
 const rateGauges = rates.map(r => {
@@ -118,54 +62,52 @@ const rateGauges = rates.map(r => {
   }
 });
 const minerStatuses = new Gauge({
-  name: prefix +'miner_statuses',
+  name: prefix + 'miner_statuses',
   help: 'minerStatuses',
   labelNames: ['status'],
 });
 const devicesStatuses = new Gauge({
-  name: prefix +'devices_statuses',
+  name: prefix + 'devices_statuses',
   help: 'devicesStatuses',
   labelNames: ['status'],
 });
-
 const deviceTemp = new Gauge({
-  name: prefix +'device_temp',
+  name: prefix + 'device_temp',
   help: 'deviceTemp',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
 const deviceLoad = new Gauge({
-  name: prefix +'device_load',
+  name: prefix + 'device_load',
   help: 'deviceLoad',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
 const devicePower = new Gauge({
-  name: prefix +'device_power',
+  name: prefix + 'device_power',
   help: 'devicePower',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
 const deviceSpeed = new Gauge({
-  name: prefix +'device_speed',
+  name: prefix + 'device_speed',
   help: 'deviceSpeed',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algo', 'suffix'],
 });
-
 const rigStatusTime = new Gauge({
-  name: prefix +'rig_status_time',
+  name: prefix + 'rig_status_time',
   help: 'rigStatusTime',
   labelNames: ['rig_name', 'rig_id'],
 });
 const rigJoinTime = new Gauge({
-  name: prefix +'rig_join_time',
+  name: prefix + 'rig_join_time',
   help: 'rigJoinTime',
   labelNames: ['rig_name', 'rig_id'],
 });
-
 const deviceStatusInfo = new Gauge({
-  name: prefix +'device_status_info',
+  name: prefix + 'device_status_info',
   help: 'deviceStatusInfo',
   labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
 });
 
+// Funzione per aggiornare le metriche
 async function refreshMetrics() {
   minerStatuses.reset()
   devicesStatuses.reset()
@@ -179,8 +121,6 @@ async function refreshMetrics() {
   try {
     const rawResponse = await nhClient.getMiningRigs()
     const data = rawResponse.data
-    //console.log(data)
-
     totalRigs.set(data.totalRigs)
     totalDevices.set(data.totalDevices)
     totalProfitability.set(data.totalProfitability)
@@ -199,7 +139,6 @@ async function refreshMetrics() {
           devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage)
           deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1)
           device.speeds.forEach(speed => {
-            //console.log(speed)
             deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed)
           })
         } catch (e) {
@@ -214,9 +153,7 @@ async function refreshMetrics() {
   try {
     const rawResponse2 = await nhClient.getWallets()
     const data2 = rawResponse2.data
-    //console.log(data2)
     totalBtc.set(+data2.total.totalBalance)
-    //fiatRate.set(data2.totalBalance)
   } catch (e) {
     console.log("there was an error on request2 ", e)
   }
@@ -224,7 +161,6 @@ async function refreshMetrics() {
   try {
     const rawResponse3 = await nhClient.getExchangeRates()
     const data3 = rawResponse3.data
-    //console.log(data3)
     rateGauges.forEach( r => {
       try {
         r.gauge.set(+data3[r.rate])
