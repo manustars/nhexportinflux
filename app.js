@@ -1,27 +1,30 @@
-const NicehashJS = require('./nicehash');
-const client = require('prom-client');
-const Gauge = client.Gauge;
-const express = require('express');
-require('dotenv').config();
+const NicehashJS = require('./nicehash')
+const client = require('prom-client')
+const Gauge = client.Gauge
+const express = require('express')
+require('dotenv').config()
 
 // Impostazioni
-const port = process.env.PORT || 3000;
-const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30;
-const prefix = process.env.NH_METRICS_PREFIX || 'nh_';
-const apiKey = process.env.NH_API_KEY;
-const apiSecret = process.env.NH_API_SECRET;
-const organizationId = process.env.NH_API_ORG_ID;
+const port = process.env.PORT || 3000
+const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30
+const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || ''
+const prefix = process.env.NH_METRICS_PREFIX || 'nh_'
+const apiKey = process.env.NH_API_KEY
+const apiSecret = process.env.NH_API_SECRET
+const organizationId = process.env.NH_API_ORG_ID
+const rates = process.env.NH_RATES ? process.env.NH_RATES.split(',') : ['BTCUSDC', 'BTCEURS']
 
-if (!apiKey || !apiSecret || !organizationId) {
-  console.log("È necessario un API key, un API secret e un orgId!");
-  console.log("https://www.nicehash.com/my/settings/keys");
-  process.exit(1);
+if(!apiKey || !apiSecret || !organizationId) {
+  console.log("You need an api key and an api secret and orgId!")
+  console.log("https://www.nicehash.com/my/settings/keys")
+  return 1
 }
 
-// Inizializzazione delle librerie
-const app = express();
+// Inizializzazione librerie
+const app = express()
+
 const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics();
+collectDefaultMetrics({prefix: nodeMetricsPrefix})
 
 const register = client.register;
 
@@ -31,99 +34,86 @@ const nhClient = new NicehashJS({
   organizationId
 });
 
-// Definizione delle metriche
+// Metriche
+
 const totalRigs = new Gauge({
-  name: `${prefix}total_rigs`,
-  help: 'Numero di rig',
+  name: prefix + 'total_rigs',
+  help: 'Numero di rig in tuo possesso'
 });
-
 const totalDevices = new Gauge({
-  name: `${prefix}total_devices`,
-  help: 'Numero di dispositivi',
+  name: prefix +'total_devices',
+  help: 'Numero di dispositivi nei rig'
 });
-
 const totalProfitability = new Gauge({
-  name: `${prefix}total_profitability`,
-  help: 'Profitto totale',
+  name: prefix +'total_profitability',
+  help: 'Profitto totale'
 });
-
 const unpaidAmount = new Gauge({
-  name: `${prefix}unpaid_amount`,
-  help: 'Ammontare non pagato',
+  name: prefix +'unpaid_amount',
+  help: 'Ammontare non pagato'
 });
-
+const totalBtc = new Gauge({
+  name: prefix +'total_btc',
+  help: 'Totale in BTC',
+});
+const rateGauges = rates.map(r => {
+  return {
+    rate: r,
+    gauge: new Gauge({
+      name: prefix + r.toLowerCase() + '_rate',
+      help: 'Tasso di ' + r,
+    })
+  }
+});
 const minerStatuses = new Gauge({
-  name: `${prefix}miner_statuses`,
-  help: 'Stato dei miner',
-  labelNames: ['status']
+  name: prefix +'miner_statuses',
+  help: 'Stato del miner',
+  labelNames: ['status'],
 });
-
 const devicesStatuses = new Gauge({
-  name: `${prefix}device_statuses`,
+  name: prefix +'devices_statuses',
   help: 'Stato dei dispositivi',
-  labelNames: ['status']
-});
-
-const rigStatusTime = new Gauge({
-  name: `${prefix}rig_status_time`,
-  help: 'Timestamp dello stato del rig',
-  labelNames: ['name', 'rig_id']
-});
-
-const rigJoinTime = new Gauge({
-  name: `${prefix}rig_join_time`,
-  help: 'Timestamp di ingresso del rig',
-  labelNames: ['name', 'rig_id']
+  labelNames: ['status'],
 });
 
 const deviceTemp = new Gauge({
-  name: `${prefix}device_temperature`,
+  name: prefix +'device_temp',
   help: 'Temperatura del dispositivo',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type']
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
-
 const deviceLoad = new Gauge({
-  name: `${prefix}device_load`,
+  name: prefix +'device_load',
   help: 'Carico del dispositivo',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type']
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
-
 const devicePower = new Gauge({
-  name: `${prefix}device_power_usage`,
-  help: 'Utilizzo di energia del dispositivo',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type']
+  name: prefix +'device_power',
+  help: 'Consumo energetico del dispositivo',
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
-
-const deviceStatusInfo = new Gauge({
-  name: `${prefix}device_status_info`,
-  help: 'Informazioni sullo stato del dispositivo',
-  labelNames: ['rig_name', 'software_versions', 'device_name', 'device_id', 'device_type', 'device_status']
-});
-
 const deviceSpeed = new Gauge({
-  name: `${prefix}device_speed`,
+  name: prefix +'device_speed',
   help: 'Velocità del dispositivo',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algorithm', 'display_suffix']
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algo', 'suffix'],
 });
 
-const totalBtc = new Gauge({
-  name: `${prefix}total_btc_balance`,
-  help: 'Saldo totale in BTC',
+const rigStatusTime = new Gauge({
+  name: prefix +'rig_status_time',
+  help: 'Tempo dello stato del rig',
+  labelNames: ['rig_name', 'rig_id'],
+});
+const rigJoinTime = new Gauge({
+  name: prefix +'rig_join_time',
+  help: 'Tempo di unione del rig',
+  labelNames: ['rig_name', 'rig_id'],
 });
 
-const deviceModel = new Gauge({
-  name: `${prefix}device_model`,
-  help: 'Modello del dispositivo',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type']
+const nhDeviceStatusInfo = new Gauge({
+  name: prefix + 'nh_device_status_info',
+  help: 'Informazioni sullo stato del dispositivo NH',
+  labelNames: ['rig_name', 'software_versions', 'device_name', 'device_id', 'device_type', 'device_status'],
 });
 
-const rateGauges = [
-  { rate: 'BTC_EUR', gauge: new Gauge({ name: `${prefix}exchange_rate_btc_eur`, help: 'Tasso di cambio BTC/EUR' }) },
-  { rate: 'BTC_USD', gauge: new Gauge({ name: `${prefix}exchange_rate_btc_usd`, help: 'Tasso di cambio BTC/USD' }) },
-  // Aggiungi altre valute se necessario
-];
-
-// Funzione per aggiornare le metriche
 async function refreshMetrics() {
   minerStatuses.reset()
   devicesStatuses.reset()
@@ -132,13 +122,11 @@ async function refreshMetrics() {
   deviceTemp.reset()
   deviceLoad.reset()
   devicePower.reset()
-  deviceStatusInfo.reset()
+  nhDeviceStatusInfo.reset()
   deviceSpeed.reset()
-  deviceModel.reset(); // Reset del gauge per il modello del dispositivo
   try {
     const rawResponse = await nhClient.getMiningRigs()
     const data = rawResponse.data
-    //console.log(data)
 
     totalRigs.set(data.totalRigs)
     totalDevices.set(data.totalDevices)
@@ -147,72 +135,55 @@ async function refreshMetrics() {
     Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]))
     Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
     data.miningRigs.forEach(rig => {
-      rigStatusTime.labels({name: rig.name, rig_id: rig.rigId}).set(rig.statusTime)
+      rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime)
       try {
-        rigJoinTime.labels({name: rig.name, rig_id: rig.rigId}).set(rig.joinTime)
+        rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime)
       } catch (e) {}
       (rig.devices || []).forEach(device => {
         try {
-          deviceTemp.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(device.temperature)
-
-          // Use data from 'odv' for model
-          const odvData = device.odv || [];
-          let model = '';
-          odvData.forEach(odv => {
-            if (odv.name === 'MODEL') {
-              model = odv.value;
-            }
-          });
-
-          // Set model, version and load
-          deviceLoad.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(device.load)
-          devicePower.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(device.powerUsage)
-          deviceStatusInfo.labels({rig_name: rig.name, software_versions: rig.softwareVersions, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName, device_status: device.status.enumName}).set(1)
-          deviceModel.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(model); // Imposta la metrica del modello del dispositivo
-
+          deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature)
+          deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load)
+          devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage)
+          nhDeviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1)
           device.speeds.forEach(speed => {
-            //console.log(speed)
-            deviceSpeed.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName, algorithm: speed.algorithm, display_suffix: speed.displaySuffix}).set(+speed.speed);
-          });
+            deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed)
+          })
         } catch (e) {
-          console.log("Errore nel parsing del dispositivo:", e);
+          console.log("Si è verificato un errore durante il parsing di " + JSON.stringify(device) + " con ", e)
         }
-      });
-    });
+      })
+    })
   } catch (e) {
-    console.log("Errore nella richiesta 1:", e);
+    console.log("Si è verificato un errore nella richiesta1 ", e)
   }
 
   try {
     const rawResponse2 = await nhClient.getWallets()
     const data2 = rawResponse2.data
-    //console.log(data2)
     totalBtc.set(+data2.total.totalBalance)
-    //fiatRate.set(data2.totalBalance)
   } catch (e) {
-    console.log("Errore nella richiesta 2:", e);
+    console.log("Si è verificato un errore nella richiesta2 ", e)
   }
 
   try {
     const rawResponse3 = await nhClient.getExchangeRates()
     const data3 = rawResponse3.data
-    //console.log(data3)
     rateGauges.forEach( r => {
       try {
         r.gauge.set(+data3[r.rate])
       } catch (e) {
-        console.log(`La valuta ${r.rate} non è stata trovata in ${data3}`)
+        console.log(`Il tasso fornito ${r.rate} non è stato trovato in ${data3}`)
       }
     })
   } catch (e) {
-    console.log("Errore nella richiesta 3:", e);
+    console.log("Si è verificato un errore nella richiesta3 ", e)
   }
 }
 
-// APIS
+// API
 
 app.get('/', (req, res) => {
-  res.send('This is an empty index, you want to go to the <a href="/metrics">metrics</a> endpoint for data!')
+  res.send('Questa è una pagina vuota, vuoi andare al <a href="/metrics">endpoint metrics</a> per ottenere i dati!')
 })
 
 app.get('/metrics', async (req, res) => {
@@ -224,7 +195,7 @@ app.get('/metrics', async (req, res) => {
   }
 })
 
-// Start the things
+// Avvio del server
 
 app.listen(port, () => {
   console.log(`App di esempio in ascolto su http://localhost:${port}`)
