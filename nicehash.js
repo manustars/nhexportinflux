@@ -1,14 +1,24 @@
-const axios = require('axios');
-const buildURL = require('axios/lib/helpers/buildURL');
-const crypto = require('crypto');
+// The code is mostly from https://github.com/dannychua/nicehashjs2
+// also it has pieces from https://github.com/bhusalb/nicehash-api
+
+const axios = require('axios')
+const buildURL = require('axios/lib/helpers/buildURL')
+const crypto = require('crypto')
 
 const API_BASE_URL = 'https://api2.nicehash.com';
 const axiosConfig = {
   baseURL: API_BASE_URL,
-  timeout: 10000,
-};
+  timeout: 1000 * 10,
+}
 
 class NiceHashClient {
+  /**
+   * Creates a new client
+   * @param options Object
+   * @param options.apiKey String - API Key
+   * @param options.apiSecret String - API Secret
+   * @param options.organizationId String - Organization Id
+   */
   constructor(options) {
     this.apiKey = options.apiKey;
     this.apiSecret = options.apiSecret;
