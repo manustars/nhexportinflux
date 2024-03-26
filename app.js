@@ -119,87 +119,100 @@ const rateGauges = [
 
 // Funzione per aggiornare le metriche
 async function refreshMetrics() {
-  minerStatuses.reset();
-  devicesStatuses.reset();
-  rigStatusTime.reset();
-  rigJoinTime.reset();
-  deviceTemp.reset();
-  deviceLoad.reset();
-  devicePower.reset();
-  deviceStatusInfo.reset();
-  deviceSpeed.reset();
+  minerStatuses.reset()
+  devicesStatuses.reset()
+  rigStatusTime.reset()
+  rigJoinTime.reset()
+  deviceTemp.reset()
+  deviceLoad.reset()
+  devicePower.reset()
+  deviceStatusInfo.reset()
+  deviceSpeed.reset()
   try {
-    const rawResponse = await nhClient.getMiningRigs();
-    const data = rawResponse.data;
+    const rawResponse = await nhClient.getMiningRigs()
+    const data = rawResponse.data
+    //console.log(data)
 
-    totalRigs.set(data.totalRigs);
-    totalDevices.set(data.totalDevices);
-    totalProfitability.set(data.totalProfitability);
-    unpaidAmount.set(+data.unpaidAmount);
-    Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]));
-    Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]));
+    totalRigs.set(data.totalRigs)
+    totalDevices.set(data.totalDevices)
+    totalProfitability.set(data.totalProfitability)
+    unpaidAmount.set(+data.unpaidAmount)
+    Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]))
+    Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
     data.miningRigs.forEach(rig => {
-      rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime);
+      rigStatusTime.labels({name: rig.name, rig_id: rig.rigId}).set(rig.statusTime)
       try {
-        rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
+        rigJoinTime.labels({name: rig.name, rig_id: rig.rigId}).set(rig.joinTime)
       } catch (e) {}
       (rig.devices || []).forEach(device => {
         try {
-          deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature);
-          deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load);
-          devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage);
-          deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1);
+          deviceTemp.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(device.temperature)
+          deviceLoad.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(device.load)
+          devicePower.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(device.powerUsage)
+          deviceStatusInfo.labels({rig_name: rig.name, software_versions: rig.softwareVersions, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName, device_status: device.status.enumName}).set(1)
           device.speeds.forEach(speed => {
-            deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed);
-          });
+            //console.log(speed)
+            deviceSpeed.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName, algorithm: speed.algorithm, display_suffix: speed.displaySuffix}).set(+speed.speed)
+          })
         } catch (e) {
-          console.log("Errore durante il parsing del dispositivo: ", e);
+          console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
         }
-      });
-    });
-  } catch (error) {
-    console.log("Errore nella richiesta API getMiningRigs: ", error);
+      })
+    })
+  } catch (e) {
+    console.log("there was an error on request1 ", e)
   }
 
   try {
-    const rawResponse2 = await nhClient.getWallets();
-    const data2 = rawResponse2.data;
-    totalBtc.set(+data2.total.totalBalance);
-  } catch (error) {
-    console.log("Errore nella richiesta API getWallets: ", error);
+    const rawResponse2 = await nhClient.getWallets()
+    const data2 = rawResponse2.data
+    //console.log(data2)
+    totalBtc.set(+data2.total.totalBalance)
+    //fiatRate.set(data2.totalBalance)
+  } catch (e) {
+    console.log("there was an error on request2 ", e)
   }
 
   try {
-    const rawResponse3 = await nhClient.getExchangeRates();
-    const data3 = rawResponse3.data;
-    rateGauges.forEach(r => {
+    const rawResponse3 = await nhClient.getExchangeRates()
+    const data3 = rawResponse3.data
+    //console.log(data3)
+    rateGauges.forEach( r => {
       try {
-        r.gauge.set(+data3[r.rate]);
+        r.gauge.set(+data3[r.rate])
       } catch (e) {
-        console.log(`La tariffa ${r.rate} non è stata trovata: `, e);
+        console.log(`given rate ${r.rate} not found in ${data3}`)
       }
-    });
-  } catch (error) {
-    console.log("Errore nella richiesta API getExchangeRates: ", error);
+    })
+  } catch (e) {
+    console.log("there was an error on request3 ", e)
   }
 }
 
-// Endpoint per le metriche
+// APIS
+
+app.get('/', (req, res) => {
+  res.send('This is an empty index, you want to go to the <a href="/metrics">metrics</a> endpoint for data!')
+})
+
 app.get('/metrics', async (req, res) => {
   try {
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
-  } catch (error) {
-    res.status(500).end(error);
+  } catch (ex) {
+    res.status(500).end(ex);
   }
-});
+})
 
-// Avvio del server
+// Start the things
+
 app.listen(port, () => {
-  console.log(`Server in ascolto su http://localhost:${port}`);
-});
+  console.log(`Example app listening at http://localhost:${port}`)
+})
 
-// Aggiorna le metriche ad intervalli regolari
-refreshMetrics(); // Prima chiamata per inizializzare le metriche
-setInterval(refreshMetrics, refreshRateSeconds * 1000);
+refreshMetrics()
+
+setInterval(() => {
+  refreshMetrics();
+}, refreshRateSeconds*1000);
 
