@@ -31,60 +31,10 @@ const nhClient = new NicehashJS({
   organizationId
 });
 
-// Funzione per aggiornare le metriche
-async function refreshMetrics() {
-  try {
-    const response = await nhClient.getMiningRigs();
-    const data = response.data;
-
-    // Aggiorna le metriche
-    totalRigs.set(data.totalRigs);
-    totalProfitability.set(data.totalProfitability);
-    totalProfitabilityLocal.set(data.totalProfitabilityLocal);
-    totalDevices.set(data.totalDevices);
-    unpaidAmount.set(data.unpaidAmount);
-    externalBalance.set(data.externalBalance);
-    previousDayEarnings.set(data.previousDayEarnings);
-    payoutAmount.set(data.payoutAmount);
-    miningFee.set(data.miningFee);
-    totalSpeedAccepted.set(data.totalSpeedAccepted);
-
-    // Aggiungi altre metriche...
-
-  } catch (error) {
-    console.error('Errore durante l\'aggiornamento delle metriche:', error);
-  }
-}
-
-// Endpoint per le metriche
-app.get('/metrics', async (req, res) => {
-  try {
-    res.set('Content-Type', register.contentType);
-    res.end(await register.metrics());
-  } catch (error) {
-    res.status(500).end(error);
-  }
-});
-
-// Avvio del server
-app.listen(port, () => {
-  console.log(`Server in ascolto su http://localhost:${port}`);
-});
-
 // Definizione delle metriche
 const totalRigs = new Gauge({
   name: `${prefix}total_rigs`,
   help: 'Numero di rig',
-});
-
-const totalProfitability = new Gauge({
-  name: `${prefix}total_profitability`,
-  help: 'Profitto totale',
-});
-
-const totalProfitabilityLocal = new Gauge({
-  name: `${prefix}total_profitability_local`,
-  help: 'Profitto totale locale',
 });
 
 const totalDevices = new Gauge({
@@ -92,36 +42,82 @@ const totalDevices = new Gauge({
   help: 'Numero di dispositivi',
 });
 
+const totalProfitability = new Gauge({
+  name: `${prefix}total_profitability`,
+  help: 'Profitto totale',
+});
+
 const unpaidAmount = new Gauge({
   name: `${prefix}unpaid_amount`,
   help: 'Ammontare non pagato',
 });
 
-const externalBalance = new Gauge({
-  name: `${prefix}external_balance`,
-  help: 'Saldo esterno',
+const minerStatuses = new Gauge({
+  name: `${prefix}miner_statuses`,
+  help: 'Stato dei miner',
+  labelNames: ['status']
 });
 
-const previousDayEarnings = new Gauge({
-  name: `${prefix}previous_day_earnings`,
-  help: 'Guadagni del giorno precedente',
+const devicesStatuses = new Gauge({
+  name: `${prefix}device_statuses`,
+  help: 'Stato dei dispositivi',
+  labelNames: ['status']
 });
 
-const payoutAmount = new Gauge({
-  name: `${prefix}payout_amount`,
-  help: 'Ammontare del pagamento',
+const rigStatusTime = new Gauge({
+  name: `${prefix}rig_status_time`,
+  help: 'Timestamp dello stato del rig',
+  labelNames: ['name', 'rig_id']
 });
 
-const miningFee = new Gauge({
-  name: `${prefix}mining_fee`,
-  help: 'Tassa di mining',
+const rigJoinTime = new Gauge({
+  name: `${prefix}rig_join_time`,
+  help: 'Timestamp di ingresso del rig',
+  labelNames: ['name', 'rig_id']
 });
 
-const totalSpeedAccepted = new Gauge({
-  name: `${prefix}total_speed_accepted`,
-  help: 'Velocità totale accettata',
+const deviceTemp = new Gauge({
+  name: `${prefix}device_temperature`,
+  help: 'Temperatura del dispositivo',
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type']
 });
 
+const deviceLoad = new Gauge({
+  name: `${prefix}device_load`,
+  help: 'Carico del dispositivo',
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type']
+});
+
+const devicePower = new Gauge({
+  name: `${prefix}device_power_usage`,
+  help: 'Utilizzo di energia del dispositivo',
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type']
+});
+
+const deviceStatusInfo = new Gauge({
+  name: `${prefix}device_status_info`,
+  help: 'Informazioni sullo stato del dispositivo',
+  labelNames: ['rig_name', 'software_versions', 'device_name', 'device_id', 'device_type', 'device_status']
+});
+
+const deviceSpeed = new Gauge({
+  name: `${prefix}device_speed`,
+  help: 'Velocità del dispositivo',
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algorithm', 'display_suffix']
+});
+
+const totalBtc = new Gauge({
+  name: `${prefix}total_btc_balance`,
+  help: 'Saldo totale in BTC',
+});
+
+const rateGauges = [
+  { rate: 'BTC_EUR', gauge: new Gauge({ name: `${prefix}exchange_rate_btc_eur`, help: 'Tasso di cambio BTC/EUR' }) },
+  { rate: 'BTC_USD', gauge: new Gauge({ name: `${prefix}exchange_rate_btc_usd`, help: 'Tasso di cambio BTC/USD' }) },
+  // Aggiungi altre valute se necessario
+];
+
+// Funzione per aggiornare le metriche
 async function refreshMetrics() {
   minerStatuses.reset();
   devicesStatuses.reset();
@@ -188,11 +184,7 @@ async function refreshMetrics() {
   }
 }
 
-// Avvio del server
-app.get('/', (req, res) => {
-  res.send('Questa è una pagina vuota. Per ottenere i dati, vai all\'endpoint <a href="/metrics">metrics</a>!');
-});
-
+// Endpoint per le metriche
 app.get('/metrics', async (req, res) => {
   try {
     res.set('Content-Type', register.contentType);
@@ -202,14 +194,12 @@ app.get('/metrics', async (req, res) => {
   }
 });
 
+// Avvio del server
 app.listen(port, () => {
   console.log(`Server in ascolto su http://localhost:${port}`);
 });
 
 // Aggiorna le metriche ad intervalli regolari
-refreshMetrics();
-
-setInterval(() => {
-  refreshMetrics();
-}, refreshRateSeconds * 1000);
+refreshMetrics(); // Prima chiamata per inizializzare le metriche
+setInterval(refreshMetrics, refreshRateSeconds * 1000);
 
