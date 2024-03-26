@@ -1,20 +1,10 @@
-# Usa un'immagine Node.js come base
-FROM node:latest
+FROM node:12-alpine
 
-# Imposta il work directory all'interno del container
-WORKDIR /app
-
-# Copia il package.json e il package-lock.json nella directory di lavoro
+RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
+WORKDIR /home/node/app
 COPY package*.json ./
-
-# Installa le dipendenze del progetto
+USER node
 RUN npm install
+COPY --chown=node:node . .
 
-# Copia il codice sorgente nell'immagine Docker
-COPY . .
-
-# Esponi la porta su cui il server Node.js è in ascolto
-EXPOSE 3000
-
-# Comando di avvio dell'applicazione
-CMD ["node", "app.js"]
+CMD [ "node", "app.js" ]
