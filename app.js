@@ -111,6 +111,12 @@ const totalBtc = new Gauge({
   help: 'Saldo totale in BTC',
 });
 
+const deviceModel = new Gauge({
+  name: `${prefix}device_model`,
+  help: 'Modello del dispositivo',
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type']
+});
+
 const rateGauges = [
   { rate: 'BTC_EUR', gauge: new Gauge({ name: `${prefix}exchange_rate_btc_eur`, help: 'Tasso di cambio BTC/EUR' }) },
   { rate: 'BTC_USD', gauge: new Gauge({ name: `${prefix}exchange_rate_btc_usd`, help: 'Tasso di cambio BTC/USD' }) },
@@ -128,6 +134,7 @@ async function refreshMetrics() {
   devicePower.reset()
   deviceStatusInfo.reset()
   deviceSpeed.reset()
+  deviceModel.reset(); // Reset del gauge per il modello del dispositivo
   try {
     const rawResponse = await nhClient.getMiningRigs()
     const data = rawResponse.data
@@ -147,20 +154,33 @@ async function refreshMetrics() {
       (rig.devices || []).forEach(device => {
         try {
           deviceTemp.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(device.temperature)
+
+          // Use data from 'odv' for model
+          const odvData = device.odv || [];
+          let model = '';
+          odvData.forEach(odv => {
+            if (odv.name === 'MODEL') {
+              model = odv.value;
+            }
+          });
+
+          // Set model, version and load
           deviceLoad.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(device.load)
           devicePower.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(device.powerUsage)
           deviceStatusInfo.labels({rig_name: rig.name, software_versions: rig.softwareVersions, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName, device_status: device.status.enumName}).set(1)
+          deviceModel.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName}).set(model); // Imposta la metrica del modello del dispositivo
+
           device.speeds.forEach(speed => {
             //console.log(speed)
-            deviceSpeed.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName, algorithm: speed.algorithm, display_suffix: speed.displaySuffix}).set(+speed.speed)
-          })
+            deviceSpeed.labels({rig_name: rig.name, device_name: device.name, device_id: device.id, device_type: device.deviceType.enumName, algorithm: speed.algorithm, display_suffix: speed.displaySuffix}).set(+speed.speed);
+          });
         } catch (e) {
-          console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
+          console.log("Errore nel parsing del dispositivo:", e);
         }
-      })
-    })
+      });
+    });
   } catch (e) {
-    console.log("there was an error on request1 ", e)
+    console.log("Errore nella richiesta 1:", e);
   }
 
   try {
@@ -170,7 +190,7 @@ async function refreshMetrics() {
     totalBtc.set(+data2.total.totalBalance)
     //fiatRate.set(data2.totalBalance)
   } catch (e) {
-    console.log("there was an error on request2 ", e)
+    console.log("Errore nella richiesta 2:", e);
   }
 
   try {
@@ -181,11 +201,11 @@ async function refreshMetrics() {
       try {
         r.gauge.set(+data3[r.rate])
       } catch (e) {
-        console.log(`given rate ${r.rate} not found in ${data3}`)
+        console.log(`La valuta ${r.rate} non è stata trovata in ${data3}`)
       }
     })
   } catch (e) {
-    console.log("there was an error on request3 ", e)
+    console.log("Errore nella richiesta 3:", e);
   }
 }
 
@@ -207,7 +227,7 @@ app.get('/metrics', async (req, res) => {
 // Start the things
 
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
+  console.log(`App di esempio in ascolto su http://localhost:${port}`)
 })
 
 refreshMetrics()
