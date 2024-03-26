@@ -7,196 +7,84 @@ require('dotenv').config();
 // Impostazioni
 const port = process.env.PORT || 3000;
 const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30;
-const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || '';
 const prefix = process.env.NH_METRICS_PREFIX || 'nh_';
 const apiKey = process.env.NH_API_KEY;
 const apiSecret = process.env.NH_API_SECRET;
 const organizationId = process.env.NH_API_ORG_ID;
-const rates = process.env.NH_RATES ? process.env.NH_RATES.split(',') : ['BTCUSDC', 'BTCEURS'];
 
 if (!apiKey || !apiSecret || !organizationId) {
-  console.log("You need an api key and an api secret and orgId!");
+  console.log("È necessario un API key, un API secret e un orgId!");
   console.log("https://www.nicehash.com/my/settings/keys");
-  return 1;
+  process.exit(1);
 }
 
 // Inizializzazione delle librerie
 const app = express();
 const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics({ prefix: nodeMetricsPrefix });
+collectDefaultMetrics();
+
 const register = client.register;
+
 const nhClient = new NicehashJS({
   apiKey,
   apiSecret,
   organizationId
 });
 
-// Metriche
-const totalRigs = new Gauge({
-  name: prefix + 'total_rigs',
-  help: 'Number of rigs you own'
-});
-const totalDevices = new Gauge({
-  name: prefix + 'total_devices',
-  help: 'Number of devices in the rigs'
-});
-const totalProfitability = new Gauge({
-  name: prefix + 'total_profitability',
-  help: 'totalProfitability'
-});
-const unpaidAmount = new Gauge({
-  name: prefix + 'unpaid_amount',
-  help: 'unpaidAmount'
-});
-const totalBtc = new Gauge({
-  name: prefix + 'total_btc',
-  help: 'totalBtc',
-});
-const rateGauges = rates.map(r => {
-  return {
-    rate: r,
-    gauge: new Gauge({
-      name: prefix + r.toLowerCase() + '_rate',
-      help: r + ' rate',
-    })
-  }
-});
-const minerStatuses = new Gauge({
-  name: prefix + 'miner_statuses',
-  help: 'minerStatuses',
-  labelNames: ['status'],
-});
-const devicesStatuses = new Gauge({
-  name: prefix + 'devices_statuses',
-  help: 'devicesStatuses',
-  labelNames: ['status'],
-});
-const deviceTemp = new Gauge({
-  name: prefix + 'device_temp',
-  help: 'deviceTemp',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
-});
-const deviceLoad = new Gauge({
-  name: prefix + 'device_load',
-  help: 'deviceLoad',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
-});
-const devicePower = new Gauge({
-  name: prefix + 'device_power',
-  help: 'devicePower',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
-});
-const deviceSpeed = new Gauge({
-  name: prefix + 'device_speed',
-  help: 'deviceSpeed',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algo', 'suffix'],
-});
-const rigStatusTime = new Gauge({
-  name: prefix + 'rig_status_time',
-  help: 'rigStatusTime',
-  labelNames: ['rig_name', 'rig_id'],
-});
-const rigJoinTime = new Gauge({
-  name: prefix + 'rig_join_time',
-  help: 'rigJoinTime',
-  labelNames: ['rig_name', 'rig_id'],
-});
-const deviceStatusInfo = new Gauge({
-  name: prefix + 'device_status_info',
-  help: 'deviceStatusInfo',
-  labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
-});
-
 // Funzione per aggiornare le metriche
 async function refreshMetrics() {
-  minerStatuses.reset()
-  devicesStatuses.reset()
-  rigStatusTime.reset()
-  rigJoinTime.reset()
-  deviceTemp.reset()
-  deviceLoad.reset()
-  devicePower.reset()
-  deviceStatusInfo.reset()
-  deviceSpeed.reset()
   try {
-    const rawResponse = await nhClient.getMiningRigs()
-    const data = rawResponse.data
-    totalRigs.set(data.totalRigs)
-    totalDevices.set(data.totalDevices)
-    totalProfitability.set(data.totalProfitability)
-    unpaidAmount.set(+data.unpaidAmount)
-    Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]))
-    Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
-    data.miningRigs.forEach(rig => {
-      rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime)
-      try {
-        rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime)
-      } catch (e) {}
-      (rig.devices || []).forEach(device => {
-        try {
-          deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature)
-          deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load)
-          devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage)
-          deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1)
-          device.speeds.forEach(speed => {
-            deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed)
-          })
-        } catch (e) {
-          console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
-        }
-      })
-    })
-  } catch (e) {
-    console.log("there was an error on request1 ", e)
-  }
+    const response = await nhClient.getMiningRigs();
+    const data = response.data;
 
-  try {
-    const rawResponse2 = await nhClient.getWallets()
-    const data2 = rawResponse2.data
-    totalBtc.set(+data2.total.totalBalance)
-  } catch (e) {
-    console.log("there was an error on request2 ", e)
-  }
+    // Aggiorna le metriche
+    totalRigs.set(data.totalRigs);
+    totalDevices.set(data.totalDevices);
+    totalProfitability.set(data.totalProfitability);
+    unpaidAmount.set(data.unpaidAmount);
 
-  try {
-    const rawResponse3 = await nhClient.getExchangeRates()
-    const data3 = rawResponse3.data
-    rateGauges.forEach( r => {
-      try {
-        r.gauge.set(+data3[r.rate])
-      } catch (e) {
-        console.log(`given rate ${r.rate} not found in ${data3}`)
-      }
-    })
-  } catch (e) {
-    console.log("there was an error on request3 ", e)
+    // Aggiorna altre metriche...
+
+  } catch (error) {
+    console.error('Errore durante l\'aggiornamento delle metriche:', error);
   }
 }
 
-// APIS
-
-app.get('/', (req, res) => {
-  res.send('This is an empty index, you want to go to the <a href="/metrics">metrics</a> endpoint for data!')
-})
-
+// Endpoint per le metriche
 app.get('/metrics', async (req, res) => {
   try {
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
-  } catch (ex) {
-    res.status(500).end(ex);
+  } catch (error) {
+    res.status(500).end(error);
   }
-})
+});
 
-// Start the things
-
+// Avvio del server
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
-})
+  console.log(`Server in ascolto su http://localhost:${port}`);
+});
 
-refreshMetrics()
+// Definizione delle metriche
+const totalRigs = new Gauge({
+  name: `${prefix}total_rigs`,
+  help: 'Numero di rig',
+});
 
-setInterval(() => {
-  refreshMetrics();
-}, refreshRateSeconds*1000);
- 
+const totalDevices = new Gauge({
+  name: `${prefix}total_devices`,
+  help: 'Numero di dispositivi',
+});
+
+const totalProfitability = new Gauge({
+  name: `${prefix}total_profitability`,
+  help: 'Profitto totale',
+});
+
+const unpaidAmount = new Gauge({
+  name: `${prefix}unpaid_amount`,
+  help: 'Ammontare non pagato',
+});
+
+// Aggiorna le metriche ad intervalli regolari
+setInterval(refreshMetrics, refreshRateSeconds * 1000);
