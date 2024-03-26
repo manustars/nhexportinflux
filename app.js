@@ -1,14 +1,14 @@
 require('dotenv').config();
 const NiceHashClient = require('./nicehash-client'); // Importa il client NiceHash
-const Influx = require('influx');
+const createInfluxClient = require('./client-influx');
 
 // Configura il client InfluxDB
-const influx = new Influx.InfluxDB({
-  host: process.env.INFLUXDB_HOST,
-  port: process.env.INFLUXDB_PORT,
-  database: process.env.INFLUXDB_DB,
-  token: process.env.INFLUXDB_TOKEN,
-});
+const influx = createInfluxClient(
+  process.env.INFLUXDB_HOST, // Indirizzo IP o hostname dell'istanza InfluxDB
+  process.env.INFLUXDB_PORT, // Porta su cui è in ascolto InfluxDB (solitamente 8086)
+  process.env.INFLUXDB_DB, // Nome del database InfluxDB
+  process.env.INFLUXDB_TOKEN // Token di accesso per l'autenticazione
+);
 
 // Crea un'istanza del client NiceHash utilizzando le variabili d'ambiente
 const niceHashClient = new NiceHashClient({
