@@ -128,7 +128,6 @@ async function refreshMetrics() {
   try {
     const rawResponse = await nhClient.getMiningRigs()
     const data = rawResponse.data
-    //console.log(data)
 
     totalRigs.set(data.totalRigs)
     totalDevices.set(data.totalDevices)
@@ -148,7 +147,6 @@ async function refreshMetrics() {
           devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage)
           deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1)
           device.speeds.forEach(speed => {
-            //console.log(speed)
             deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed)
           })
         } catch (e) {
@@ -163,9 +161,8 @@ async function refreshMetrics() {
   try {
     const rawResponse2 = await nhClient.getWallets()
     const data2 = rawResponse2.data
-    //console.log(data2)
+
     totalBtc.set(+data2.total.totalBalance)
-    //fiatRate.set(data2.totalBalance)
   } catch (e) {
     console.log("there was an error on request2 ", e)
   }
@@ -173,7 +170,7 @@ async function refreshMetrics() {
   try {
     const rawResponse3 = await nhClient.getExchangeRates()
     const data3 = rawResponse3.data
-    //console.log(data3)
+
     rateGauges.forEach( r => {
       try {
         r.gauge.set(+data3[r.rate])
@@ -194,6 +191,7 @@ app.get('/', (req, res) => {
 
 app.get('/metrics', async (req, res) => {
   try {
+    await refreshMetrics(); // Chiamo la funzione per aggiornare le metriche prima di restituire la risposta
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
   } catch (ex) {
@@ -207,8 +205,7 @@ app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 })
 
-refreshMetrics()
-
 setInterval(() => {
   refreshMetrics();
-}, refreshRateSeconds*1000);
+}, refreshRateSeconds * 1000);
+ 
