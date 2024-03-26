@@ -1,3 +1,54 @@
+// Definizione delle classi MiningRigGroup, MiningRig e Device
+class MiningRigGroup {
+    constructor(groupName, minerStatuses, rigTypes, totalRigs, totalProfitability, groupPowerMode, groupBundle, totalDevices, devicesStatuses, unpaidAmount, hasV4Rigs) {
+        this.groupName = groupName;
+        this.minerStatuses = minerStatuses;
+        this.rigTypes = rigTypes;
+        this.totalRigs = totalRigs;
+        this.totalProfitability = totalProfitability;
+        this.groupPowerMode = groupPowerMode;
+        this.groupBundle = groupBundle;
+        this.totalDevices = totalDevices;
+        this.devicesStatuses = devicesStatuses;
+        this.unpaidAmount = unpaidAmount;
+        this.hasV4Rigs = hasV4Rigs;
+    }
+}
+
+class MiningRig {
+    constructor(rigId, type, name, statusTime, joinTime, minerStatus, groupName, unpaidAmount, notifications, softwareVersions, devices) {
+        this.rigId = rigId;
+        this.type = type;
+        this.name = name;
+        this.statusTime = statusTime;
+        this.joinTime = joinTime;
+        this.minerStatus = minerStatus;
+        this.groupName = groupName;
+        this.unpaidAmount = unpaidAmount;
+        this.notifications = notifications;
+        this.softwareVersions = softwareVersions;
+        this.devices = devices;
+    }
+}
+
+class Device {
+    constructor(id, name, deviceType, status, temperature, load, revolutionsPerMinute, revolutionsPerMinutePercentage, powerMode, powerUsage, speeds, intensity, nhqm) {
+        this.id = id;
+        this.name = name;
+        this.deviceType = deviceType;
+        this.status = status;
+        this.temperature = temperature;
+        this.load = load;
+        this.revolutionsPerMinute = revolutionsPerMinute;
+        this.revolutionsPerMinutePercentage = revolutionsPerMinutePercentage;
+        this.powerMode = powerMode;
+        this.powerUsage = powerUsage;
+        this.speeds = speeds;
+        this.intensity = intensity;
+        this.nhqm = nhqm;
+    }
+}
+
 const NicehashJS = require('./nicehash')
 const client = require('prom-client')
 const Gauge = client.Gauge
@@ -128,6 +179,7 @@ async function refreshMetrics() {
   try {
     const rawResponse = await nhClient.getMiningRigs()
     const data = rawResponse.data
+    //console.log(data)
 
     totalRigs.set(data.totalRigs)
     totalDevices.set(data.totalDevices)
@@ -147,6 +199,7 @@ async function refreshMetrics() {
           devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage)
           deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1)
           device.speeds.forEach(speed => {
+            //console.log(speed)
             deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed)
           })
         } catch (e) {
@@ -161,8 +214,9 @@ async function refreshMetrics() {
   try {
     const rawResponse2 = await nhClient.getWallets()
     const data2 = rawResponse2.data
-
+    //console.log(data2)
     totalBtc.set(+data2.total.totalBalance)
+    //fiatRate.set(data2.totalBalance)
   } catch (e) {
     console.log("there was an error on request2 ", e)
   }
@@ -170,7 +224,7 @@ async function refreshMetrics() {
   try {
     const rawResponse3 = await nhClient.getExchangeRates()
     const data3 = rawResponse3.data
-
+    //console.log(data3)
     rateGauges.forEach( r => {
       try {
         r.gauge.set(+data3[r.rate])
@@ -191,7 +245,6 @@ app.get('/', (req, res) => {
 
 app.get('/metrics', async (req, res) => {
   try {
-    await refreshMetrics(); // Chiamo la funzione per aggiornare le metriche prima di restituire la risposta
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
   } catch (ex) {
@@ -205,7 +258,9 @@ app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 })
 
+refreshMetrics()
+
 setInterval(() => {
   refreshMetrics();
-}, refreshRateSeconds * 1000);
+}, refreshRateSeconds*1000);
  
