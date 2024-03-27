@@ -147,7 +147,13 @@ async function refreshMetrics() {
             
             (rig.devices || []).forEach(device => {
                 try {
-                    deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value);
+                    const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
+                    if (temperatureEntry) {
+                        deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry.value);
+                    } else {
+                        deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(0);
+                    }
+ //                   deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value);
                     deviceLoad.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
                     devicePower.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.powerUsage);
                     deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, devices[0].mdv.state).set(1);
