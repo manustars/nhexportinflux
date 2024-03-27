@@ -95,7 +95,7 @@ const devicePower = new Gauge({
 const deviceSpeed = new Gauge({
   name: prefix +'device_speed',
   help: 'deviceSpeed',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algo', 'suffix'],
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algorit', 'suffix'],
 });
 
 const rigStatusTime = new Gauge({
