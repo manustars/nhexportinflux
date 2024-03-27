@@ -137,7 +137,7 @@ async function refreshMetrics() {
     Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]))
     Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
     data.miningRigs.forEach(rig => {
-      rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime)
+      rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime)
       try {
         rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime)
       } catch (e) {}
