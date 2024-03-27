@@ -143,7 +143,7 @@ async function refreshMetrics() {
   deviceSpeed.reset()
   try {
     const rawResponse = await nhClient.getMiningRigs()
-    const data = rawResponse.data
+    const data = rawResponse.data // Sposti la dichiarazione e l'inizializzazione qui
 
     totalRigs.set(data.totalRigs)
     totalDevices.set(data.totalDevices)
@@ -168,6 +168,12 @@ async function refreshMetrics() {
         } catch (e) {
           console.log("Si è verificato un errore durante il parsing di " + JSON.stringify(device) + " con ", e)
         }
+      })
+    })
+  } catch (e) {
+    console.log("Si è verificato un errore nella richiesta1 ", e)
+  }
+
       })
     })
   } catch (e) {
