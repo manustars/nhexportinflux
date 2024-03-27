@@ -95,7 +95,7 @@ const devicePower = new Gauge({
 const deviceSpeed = new Gauge({
   name: prefix +'device_speed',
   help: 'deviceSpeed',
-  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algorit', 'suffix'],
+  labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algo', 'suffix'],
 });
 
 const rigStatusTime = new Gauge({
@@ -139,11 +139,11 @@ async function refreshMetrics() {
     data.miningRigs.forEach(rig => {
         if (rig.v4 && rig.v4.mmv) {
             rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
-            try {
-                rigJoinTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.joinTime);
-            } catch (e) {
-                console.error("Errore durante il settaggio di rigJoinTime: ", e);
-            }
+//            try {
+//                rigJoinTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.joinTime);
+//            } catch (e) {
+//                console.error("Errore durante il settaggio di rigJoinTime: ", e);
+//            }
             
             (rig.devices || []).forEach(device => {
                 try {
