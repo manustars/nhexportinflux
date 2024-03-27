@@ -176,9 +176,13 @@ async function refreshMetrics() {
                     
                     device.speeds.forEach(speed => {
                         deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed);
-                    });
-                }) 
+                    })
+                } catch (e) {
+                    console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
+                } 
             })
+        }
+        })
          } catch (e) {
     console.log("there was an error on request1 ", e)
   }
