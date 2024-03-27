@@ -137,37 +137,47 @@ async function refreshMetrics() {
     Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]))
     Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
     data.miningRigs.forEach(rig => {
-      rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime)
-      try {
-        rigJoinTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.joinTime)
-      } catch (e) {}
-      (rig.devices || []).forEach(device => {
-        
-        try {
-          if (rig.v4 && rig.v4.mmv && rig.v4.mmv.workerName && rig.devices && rig.devices.length > 0) {
-              const device = rig.devices[0];
-              if (device.dsv && device.dsv.name && device.dsv.id && device.dsv.deviceClass && device.odv) {
-                  const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
-                  if (temperatureEntry) {
-                      deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry.value || 0);
-                  }
-              }
-          } else if (rig.name && device.name && device.id && device.deviceType && device.temperature) {
-              deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature);
-          }
-          deviceLoad.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value)
-          devicePower.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.powerUsage)
-          deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, devices[0].mdv.state).set(1)
-          device.speeds.forEach(speed => {
-            //console.log(speed)
-            deviceSpeed.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed)
-          })
-        } catch (e) {
-          console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
-        }
-      })
-    })
-  } catch (e) {
+        if (rig.v4 && rig.v4.mmv) {
+            rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
+            try {
+                rigJoinTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.joinTime);
+            } catch (e) {
+                console.error("Errore durante il settaggio di rigJoinTime: ", e);
+            }
+            
+            (rig.devices || []).forEach(device => {
+                try {
+                    deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value);
+                    deviceLoad.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
+                    devicePower.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.powerUsage);
+                    deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, devices[0].mdv.state).set(1);
+                    
+                    device.speeds.forEach(speed => {
+                        deviceSpeed.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+                    });
+                } catch (e) {
+                    console.error("Errore durante il parsing del dispositivo: ", e);
+                }
+            });
+        } else {
+            rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime);
+            try {
+                rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
+            } catch (e) {
+                console.error("Errore durante il settaggio di rigJoinTime: ", e);
+            }
+            
+            (rig.devices || []).forEach(device => {
+                try {
+                    deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature);
+                    deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load);
+                    devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage);
+                    deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1);
+                    
+                    device.speeds.forEach(speed => {
+                        deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+                    });
+                } catch (e) {
     console.log("there was an error on request1 ", e)
   }
 
