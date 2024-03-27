@@ -139,17 +139,17 @@ async function refreshMetrics() {
     data.miningRigs.forEach(rig => {
       rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime)
       try {
-        rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime)
+        rigJoinTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.joinTime)
       } catch (e) {}
       (rig.devices || []).forEach(device => {
         try {
-          deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature)
-          deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load)
-          devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage)
+          deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value)
+          deviceLoad.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value)
+          devicePower.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.powerUsage)
           deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, devices[0].mdv.state).set(1)
           device.speeds.forEach(speed => {
             //console.log(speed)
-            deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed)
+            deviceSpeed.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed)
           })
         } catch (e) {
           console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
