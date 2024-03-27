@@ -146,7 +146,7 @@ async function refreshMetrics() {
           deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature)
           deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load)
           devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage)
-          deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1)
+          deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, devices[0].mdv.state).set(1)
           device.speeds.forEach(speed => {
             //console.log(speed)
             deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed)
