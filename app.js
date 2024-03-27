@@ -33,6 +33,23 @@ const nhClient = new NicehashJS({
   apiSecret,
   organizationId
 });
+// Estrai i dati necessari
+const rigName = data.miningRigs[0].mmv.workerName;
+const rigSoftwareVersions = data.miningRigs[0].v4.versions.join(', '); // Unisci le versioni separate da virgola
+const deviceName = data.miningRigs[0].devices[0].dsv.name;
+const deviceId = data.miningRigs[0].devices[0].dsv.id;
+const deviceType = data.miningRigs[0].devices[0].dsv.deviceClass;
+const status = data.miningRigs[0].minerStatus;
+
+// Aggiorna il Gauge con i dati estratti
+deviceStatusInfo.set({
+  rig_name: rigName,
+  rig_softwareversions: rigSoftwareVersions,
+  device_name: deviceName,
+  device_id: deviceId,
+  device_type: deviceType,
+  status: status
+}, 1);
 
 // Metriche
 
