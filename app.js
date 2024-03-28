@@ -152,9 +152,9 @@ async function refreshMetrics() {
           try {
             const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
             if (temperatureEntry) {
-              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry.value);
+              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(temperatureEntry.value));
             } else {
-              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(0);
+              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(0));
             }
             //                   deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value);
             deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
