@@ -147,6 +147,8 @@ async function refreshMetrics() {
             
             (rig.v4.devices || []).forEach((device, index) => {
               console.log("Device", index + 1, ":", device);
+              const dsv = device.dsv; // Dettagli dsv
+              const osv = device.osv; // Dettagli osv
                 try {
                     const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
                     if (temperatureEntry) {
