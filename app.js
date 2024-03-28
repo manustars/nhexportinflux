@@ -170,7 +170,7 @@ async function refreshMetrics() {
               devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(-1));
             }            
 //            devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.powerUsage);
-            deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[1], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(parseFloat(1));
+            deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(parseFloat(1));
 
             device.speeds.forEach(speed => {
               deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
