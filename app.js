@@ -154,9 +154,9 @@ async function refreshMetrics() {
                         deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(0);
                     }
  //                   deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value);
-                    deviceLoad.labels(rig.v4.mmv.workerName, devices.dsv.name, devices.dsv.id, devices.dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
-                    devicePower.labels(rig.v4.mmv.workerName, devices.dsv.name, devices.dsv.id, devices.dsv.deviceClass).set(device.powerUsage);
-                    deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], devices.dsv.name, devices.dsv.id, devices.dsv.deviceClass, devices.mdv.state).set(1);
+                    deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
+                    devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.powerUsage);
+                    deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(1);
                     
                     device.speeds.forEach(speed => {
                         deviceSpeed.labels(rig.v4.mmv.workerName, devices.dsv.name, devices.dsv.id, devices.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
