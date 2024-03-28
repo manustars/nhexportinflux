@@ -145,17 +145,57 @@ async function refreshMetrics() {
 //                console.error("Errore durante il settaggio di rigJoinTime: ", e);
 //            }
 //if (rig.v4.devices && rig.v4.devices.length > 0) {      
-            (rig.v4.devices || []).forEach((device, index) => {
-//              console.log("Device", index + 1, ":", device);
-//              const dsv = device.dsv; // Dettagli dsv
-//              const osv = device.osv; // Dettagli osv
-                try {
-                    const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
-                    if (temperatureEntry) {
-                        deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry.value);
-                    } else {
-                        deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(0);
-                    }
+            (rig.v4.devices || []).forEach(device => {
+              console.log("Mining rig:", miningRig.rigId);
+              const devices = miningRig.v4.devices;
+              if (devices && devices.length > 0){
+                devices.forEach((device, index) => {
+                  console.log("Device", index + 1, ":", device);
+                  const dsv = device.dsv;
+                  const osv = device.osv;
+                  if (dsv && osv) {
+                      console.log("Device details:", dsv, osv);
+                      try {
+                          const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
+                          if (temperatureEntry) {
+                              console.log("Temperature:", temperatureEntry.value);
+                              deviceTemp.labels(rig.v4.mmv.workerName, dsv.name, dsv.id, dsv.deviceClass).set(temperatureEntry.value);
+                          } else {
+                              console.log("Temperature entry not found");
+                              deviceTemp.labels(rig.v4.mmv.workerName, dsv.name, dsv.id, dsv.deviceClass).set(0);
+                          }
+                          const loadEntry = device.odv.find(entry => entry.key === "Load");
+                          if (loadEntry) {
+                              console.log("Load:", loadEntry.value);
+                              deviceLoad.labels(rig.v4.mmv.workerName, dsv.name, dsv.id, dsv.deviceClass).set(loadEntry.value);
+                          } else {
+                              console.log("Load entry not found");
+                              deviceLoad.labels(rig.v4.mmv.workerName, dsv.name, dsv.id, dsv.deviceClass).set(0);
+                          }
+                          console.log("Power usage:", device.powerUsage);
+                          devicePower.labels(rig.v4.mmv.workerName, dsv.name, dsv.id, dsv.deviceClass).set(device.powerUsage);
+                          deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], dsv.name, dsv.id, dsv.deviceClass, device.mdv.state).set(1);
+                          
+                          device.speeds.forEach(speed => {
+                              console.log("Speed:", speed);
+                              deviceSpeed.labels(rig.v4.mmv.workerName, dsv.name, dsv.id, dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+                          });
+                      } catch (e) {
+                          console.error("Error parsing device:", e);
+                      }
+                  } else {
+                      console.warn("Device details are not available");
+                  }
+              });
+          }  
+              }
+ //               try {
+ //                   const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
+ //                   if (temperatureEntry) {
+ //                       deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry.value);
+ //                   } else {
+ //                       deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(0);
+ //                   }
  //                   deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value);
                     deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
                     devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.powerUsage);
@@ -164,10 +204,10 @@ async function refreshMetrics() {
                     device.speeds.forEach(speed => {
                         deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
                     });
-                } catch (e) {
-                    console.error("Errore durante il parsing del dispositivo: ", e);
-                }
-            });
+//                } catch (e) {
+//                    console.error("Errore durante il parsing del dispositivo: ", e);
+//                }
+//            });
 //          } else {
             console.log("Nessun dispositivo trovato.");
 //        }
