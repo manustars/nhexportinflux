@@ -15,7 +15,7 @@ const apiSecret = process.env.NH_API_SECRET
 const organizationId = process.env.NH_API_ORG_ID
 const rates = process.env.NH_RATES ? process.env.NH_RATES.split(',') : ['BTCUSDC', 'BTCEURS']
 
-if (!apiKey || !apiSecret || !organizationId) {
+if(!apiKey || !apiSecret || !organizationId) {
   console.log("You need an api key and an api secret and orgId!")
   console.log("https://www.nicehash.com/my/settings/keys")
   return 1
@@ -25,7 +25,7 @@ if (!apiKey || !apiSecret || !organizationId) {
 const app = express()
 
 const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics({ prefix: nodeMetricsPrefix })
+collectDefaultMetrics({prefix: nodeMetricsPrefix})
 
 const register = client.register;
 
@@ -42,19 +42,19 @@ const totalRigs = new Gauge({
   help: 'Number of rigs you own'
 });
 const totalDevices = new Gauge({
-  name: prefix + 'total_devices',
+  name: prefix +'total_devices',
   help: 'Number of devices in the rigs'
 });
 const totalProfitability = new Gauge({
-  name: prefix + 'total_profitability',
+  name: prefix +'total_profitability',
   help: 'totalProfitability'
 });
 const unpaidAmount = new Gauge({
-  name: prefix + 'unpaid_amount',
+  name: prefix +'unpaid_amount',
   help: 'unpaidAmount'
 });
 const totalBtc = new Gauge({
-  name: prefix + 'total_btc',
+  name: prefix +'total_btc',
   help: 'totalBtc',
 });
 const rateGauges = rates.map(r => {
@@ -67,50 +67,50 @@ const rateGauges = rates.map(r => {
   }
 });
 const minerStatuses = new Gauge({
-  name: prefix + 'miner_statuses',
+  name: prefix +'miner_statuses',
   help: 'minerStatuses',
   labelNames: ['status'],
 });
 const devicesStatuses = new Gauge({
-  name: prefix + 'devices_statuses',
+  name: prefix +'devices_statuses',
   help: 'devicesStatuses',
   labelNames: ['status'],
 });
 
 const deviceTemp = new Gauge({
-  name: prefix + 'device_temp',
+  name: prefix +'device_temp',
   help: 'deviceTemp',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
 const deviceLoad = new Gauge({
-  name: prefix + 'device_load',
+  name: prefix +'device_load',
   help: 'deviceLoad',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
 const devicePower = new Gauge({
-  name: prefix + 'device_power',
+  name: prefix +'device_power',
   help: 'devicePower',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
 const deviceSpeed = new Gauge({
-  name: prefix + 'device_speed',
+  name: prefix +'device_speed',
   help: 'deviceSpeed',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algo', 'suffix'],
 });
 
 const rigStatusTime = new Gauge({
-  name: prefix + 'rig_status_time',
+  name: prefix +'rig_status_time',
   help: 'rigStatusTime',
   labelNames: ['rig_name', 'rig_id'],
 });
-//const rigJoinTime = new Gauge({
-//  name: prefix +'rig_join_time',
-//  help: 'rigJoinTime',
-//  labelNames: ['rig_name', 'rig_id'],
-//});
+const rigJoinTime = new Gauge({
+  name: prefix +'rig_join_time',
+  help: 'rigJoinTime',
+  labelNames: ['rig_name', 'rig_id'],
+});
 
 const deviceStatusInfo = new Gauge({
-  name: prefix + 'device_status_info',
+  name: prefix +'device_status_info',
   help: 'deviceStatusInfo',
   labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
 });
@@ -136,36 +136,60 @@ async function refreshMetrics() {
     unpaidAmount.set(+data.unpaidAmount)
     Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]))
     Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
-data.miningRigs.forEach(rig => {
-    if (rig.v4 && rig.v4.mmv) {
-        rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
-
-        (rig.v4.devices || []).forEach((device, index) => {
-          console.log("Device", index + 1, ":", device);
-          const dsv = device.dsv; // Dettagli dsv
-          const osv = device.osv; // Dettagli osv
-            try {
-                const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
-                if (temperatureEntry) {
-                    deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry.value);
-                } else {
-                    deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(0);
+    data.miningRigs.forEach(rig => {
+        if (rig.v4 && rig.v4.mmv) {
+            rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
+//            try {
+//                rigJoinTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.joinTime);
+//            } catch (e) {
+//                console.error("Errore durante il settaggio di rigJoinTime: ", e);
+//            }
+            
+            (rig.devices || []).forEach(device => {
+                try {
+                    const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
+                    if (temperatureEntry) {
+                        deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry.value);
+                    } else {
+                        deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(0);
+                    }
+ //                   deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value);
+                    deviceLoad.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
+                    devicePower.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.powerUsage);
+                    deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, devices[0].mdv.state).set(1);
+                    
+                    device.speeds.forEach(speed => {
+                        deviceSpeed.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+                    });
+                } catch (e) {
+                    console.error("Errore durante il parsing del dispositivo: ", e);
                 }
-//                   deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value);
-                deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
-                devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.powerUsage);
-                deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(1);
-                
-                device.speeds.forEach(speed => {
-                    deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
-                })
-          } catch (e) {
-            console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
-          }
-        });
-      }
-    });
-  } catch (e) {
+            });
+        } else {
+            rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime);
+            try {
+                rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
+            } catch (e) {
+                console.error("Errore durante il settaggio di rigJoinTime: ", e);
+            }
+            
+            (rig.devices || []).forEach(device => {
+                try {
+                    deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature);
+                    deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load);
+                    devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage);
+                    deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1);
+                    
+                    device.speeds.forEach(speed => {
+                        deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+                    })
+                } catch (e) {
+                    console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
+                } 
+            })
+        }
+        })
+         } catch (e) {
     console.log("there was an error on request1 ", e)
   }
 
@@ -183,7 +207,7 @@ data.miningRigs.forEach(rig => {
     const rawResponse3 = await nhClient.getExchangeRates()
     const data3 = rawResponse3.data
     //console.log(data3)
-    rateGauges.forEach(r => {
+    rateGauges.forEach( r => {
       try {
         r.gauge.set(+data3[r.rate])
       } catch (e) {
@@ -220,4 +244,4 @@ refreshMetrics()
 
 setInterval(() => {
   refreshMetrics();
-}, refreshRateSeconds * 1000);
+}, refreshRateSeconds*1000);
