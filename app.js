@@ -119,7 +119,7 @@ async function refreshMetrics() {
   minerStatuses.reset()
   devicesStatuses.reset()
   rigStatusTime.reset()
-  //  rigJoinTime.reset()
+  rigJoinTime.reset()
   deviceTemp.reset()
   deviceLoad.reset()
   devicePower.reset()
@@ -145,43 +145,44 @@ async function refreshMetrics() {
         //                console.error("Errore durante il settaggio di rigJoinTime: ", e);
         //            }
 
-        (rig.devices || []).forEach(device => {
+        (rig.v4.devices || []).forEach((device, index) => {
+          console.log("Device", index + 1, ":", device);
           try {
-            const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
-            if (temperatureEntry) {
-              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry.value);
-            } else {
-              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(0);
-            }
-            deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
-            devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.powerUsage);
-            deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(1);
-
-            device.speeds.forEach(speed => {
-              deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
-            });
+              const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
+              if (temperatureEntry) {
+                  deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry.value);
+              } else {
+                  deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(0);
+              }
+              deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
+              devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.powerUsage);
+              deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(1);
+              
+              device.speeds.forEach(speed => {
+                  deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+              });
           } catch (e) {
-            console.error("Errore durante il parsing del dispositivo: ", e);
+              console.error("Errore durante il parsing del dispositivo: ", e);
           }
-        });
-      } else {
-        rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime);
-        try {
+      });
+  } else {
+      rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime);
+      try {
           rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
-        } catch (e) {
+      } catch (e) {
           console.error("Errore durante il settaggio di rigJoinTime: ", e);
-        }
-
-        (rig.devices || []).forEach(device => {
+      }
+      
+      (rig.devices || []).forEach(device => {
           try {
-            deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature);
-            deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load);
-            devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage);
-            deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1);
-
-            device.speeds.forEach(speed => {
-              deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed);
-            })
+              deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature);
+              deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load);
+              devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage);
+              deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1);
+              
+              device.speeds.forEach(speed => {
+                  deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+              });
           } catch (e) {
             console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
           }
