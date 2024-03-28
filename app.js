@@ -186,9 +186,9 @@ async function refreshMetrics() {
           } catch (e) {
             console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
           }
-        })
+        });
       }
-    })
+    });
   } catch (e) {
     console.log("there was an error on request1 ", e)
   }
