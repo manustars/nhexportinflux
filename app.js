@@ -145,7 +145,8 @@ async function refreshMetrics() {
 //                console.error("Errore durante il settaggio di rigJoinTime: ", e);
 //            }
             
-            (rig.v4.devices || []).forEach(device => {
+            (rig.v4.devices || []).forEach((device, index) => {
+              console.log("Device", index + 1, ":", device);
                 try {
                     const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
                     if (temperatureEntry) {
@@ -159,7 +160,7 @@ async function refreshMetrics() {
                     deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.stats[0].v4.versions[1], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(1);
                     
                     device.speeds.forEach(speed => {
-                        deviceSpeed.labels(rig.v4.mmv.workerName, devices.dsv.name, devices.dsv.id, devices.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+                        deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
                     });
                 } catch (e) {
                     console.error("Errore durante il parsing del dispositivo: ", e);
