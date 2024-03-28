@@ -146,6 +146,7 @@ async function refreshMetrics() {
 //            }
             
             (rig.v4.devices || []).forEach((device, index) => {
+              if (rig.v4.devices && rig.v4.devices.length > 0) {
               console.log("Device", index + 1, ":", device);
               const dsv = device.dsv; // Dettagli dsv
               const osv = device.osv; // Dettagli osv
@@ -167,6 +168,10 @@ async function refreshMetrics() {
                 } catch (e) {
                     console.error("Errore durante il parsing del dispositivo: ", e);
                 }
+              }
+             else {
+              console.log("Nessun dispositivo trovato.");
+          }
             });
         } else {
             rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime);
