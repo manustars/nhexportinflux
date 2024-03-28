@@ -129,7 +129,6 @@ async function refreshMetrics() {
     const rawResponse = await nhClient.getMiningRigs()
     const data = rawResponse.data
     //console.log(data)
-
     totalRigs.set(data.totalRigs)
     totalDevices.set(data.totalDevices)
     totalProfitability.set(data.totalProfitability)
@@ -139,11 +138,6 @@ async function refreshMetrics() {
     data.miningRigs.forEach(rig => {
       if (rig.v4 && rig.v4.mmv) {
         rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
-        //            try {
-        //                rigJoinTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.joinTime);
-        //            } catch (e) {
-        //                console.error("Errore durante il settaggio di rigJoinTime: ", e);
-        //            }
 
         (rig.v4.devices || []).forEach((device, index) => {
           console.log("Device", index + 1, ":", device);
@@ -156,22 +150,17 @@ async function refreshMetrics() {
             } else {
               deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(0));
             }
-
             const loadEntry = device.odv.find(entry => entry.key === "Load");
             const loadValue = loadEntry ? parseFloat(loadEntry.value) : 0;
             deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(loadValue);
-            
-            //                   deviceTemp.labels(rig.v4.mmv.workerName, devices[0].dsv.name, devices[0].dsv.id, devices[0].dsv.deviceClass).set(device.odv.find(entry => entry.key === "Temperature").value);
-           // deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.odv.find(entry => entry.key === "Load").value);
+
             const powerEntry = device.odv.find(entry => entry.key === "Power usage");
             if (powerEntry) {
               devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(powerEntry.value));
             } else {
               devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(-1));
             }            
-//            devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(device.powerUsage);
             deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(parseFloat(1));
-
             device.speeds.forEach(speed => {
               deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
             });
