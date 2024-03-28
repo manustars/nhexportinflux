@@ -103,11 +103,11 @@ const rigStatusTime = new Gauge({
   help: 'rigStatusTime',
   labelNames: ['rig_name', 'rig_id'],
 });
-const rigJoinTime = new Gauge({
-  name: prefix +'rig_join_time',
-  help: 'rigJoinTime',
-  labelNames: ['rig_name', 'rig_id'],
-});
+//const rigJoinTime = new Gauge({
+//  name: prefix +'rig_join_time',
+//  help: 'rigJoinTime',
+//  labelNames: ['rig_name', 'rig_id'],
+//});
 
 const deviceStatusInfo = new Gauge({
   name: prefix +'device_status_info',
@@ -119,7 +119,7 @@ async function refreshMetrics() {
   minerStatuses.reset()
   devicesStatuses.reset()
   rigStatusTime.reset()
-  rigJoinTime.reset()
+//  rigJoinTime.reset()
   deviceTemp.reset()
   deviceLoad.reset()
   devicePower.reset()
@@ -145,7 +145,7 @@ async function refreshMetrics() {
 //                console.error("Errore durante il settaggio di rigJoinTime: ", e);
 //            }
             
-            (rig.devices || []).forEach(device => {
+            (rig.v4.devices || []).forEach(device => {
                 try {
                     const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
                     if (temperatureEntry) {
