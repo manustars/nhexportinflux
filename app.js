@@ -112,7 +112,7 @@ const rigJoinTime = new Gauge({
 //Test verify rig status
 const rigStatus = new Gauge({
   name: prefix + 'rig_join_time',
-  help: 'rigJoinTime',
+  help: 'rigStatus',
   labelNames: ['rig_name', 'rig_status', 'rig_id'],
 });
 
