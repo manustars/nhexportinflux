@@ -115,6 +115,12 @@ const deviceStatusInfo = new Gauge({
   labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
 });
 
+const rigStatusInfo = new Gauge({
+  name: prefix + 'rig_status_info',
+  help: 'rigStatusInfo',
+  labelNames: ['rig_name', 'rig_status']
+});
+
 async function refreshMetrics() {
   minerStatuses.reset()
   devicesStatuses.reset()
@@ -125,6 +131,7 @@ async function refreshMetrics() {
   devicePower.reset()
   deviceStatusInfo.reset()
   deviceSpeed.reset()
+  rigStatusInfo.reset()
   try {
     const rawResponse = await nhClient.getMiningRigs()
     const data = rawResponse.data
@@ -138,6 +145,7 @@ async function refreshMetrics() {
     data.miningRigs.forEach(rig => {
       if (rig.v4 && rig.v4.mmv) {
         rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
+        rigStatusInfo.labels(rig.v4.mmv.workerName, rig.minerStatus).set(rig.StatusInfo);
 
         (rig.v4.devices || []).forEach((device, index) => {
           console.log("Device", index + 1, ":", device);
