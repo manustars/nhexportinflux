@@ -144,8 +144,8 @@ async function refreshMetrics() {
     Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
     data.miningRigs.forEach(rig => {
       if (rig.v4 && rig.v4.mmv) {
-        rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
-        rigStatusInfo.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
+ //       rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
+//        rigStatusInfo.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
 
         (rig.v4.devices || []).forEach((device, index) => {
           console.log("Device", index + 1, ":", device);
