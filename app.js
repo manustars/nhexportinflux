@@ -118,7 +118,7 @@ const deviceStatusInfo = new Gauge({
 const rigStatusInfo = new Gauge({
   name: prefix + 'rig_status_info',
   help: 'rigStatusInfo',
-  labelNames: ['rig_name', 'rig_status']
+  labelNames: ['rig_name', 'rig_status', 'rig_id']
 });
 
 async function refreshMetrics() {
@@ -145,7 +145,7 @@ async function refreshMetrics() {
     data.miningRigs.forEach(rig => {
       if (rig.v4 && rig.v4.mmv) {
         rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
-        rigStatusInfo.labels(rig.v4.mmv.workerName, rig.minerStatus, rig.rigId).set(rig.statusTime);
+        rigStatusInfo.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
 
         (rig.v4.devices || []).forEach((device, index) => {
           console.log("Device", index + 1, ":", device);
