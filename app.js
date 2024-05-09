@@ -101,14 +101,13 @@ const deviceSpeed = new Gauge({
 const rigStatusTime = new Gauge({
   name: prefix + 'rig_status_time',
   help: 'rigStatusTime',
-  labelNames: ['rig_name', 'rig_status', 'rig_id'],
+  labelNames: ['rig_name', 'rig_id'],
 });
 const rigJoinTime = new Gauge({
   name: prefix + 'rig_join_time',
   help: 'rigJoinTime',
   labelNames: ['rig_name', 'rig_id'],
 });
-
 
 const deviceStatusInfo = new Gauge({
   name: prefix + 'device_status_info',
