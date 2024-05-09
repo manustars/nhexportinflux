@@ -101,7 +101,7 @@ const deviceSpeed = new Gauge({
 const rigStatusTime = new Gauge({
   name: prefix + 'rig_status_time',
   help: 'rigStatusTime',
-  labelNames: ['rig_name', 'rig_id'],
+  labelNames: ['rig_name', 'rig_status', 'rig_id'],
 });
 const rigJoinTime = new Gauge({
   name: prefix + 'rig_join_time',
@@ -110,11 +110,11 @@ const rigJoinTime = new Gauge({
 });
 
 //Test verify rig status
-const rigStatus = new Gauge({
-  name: prefix + 'rig_status',
-  help: 'rigStatus',
-  labelNames: ['rig_name', 'rig_status', 'rig_id'],
-});
+//const rigStatus = new Gauge({
+//  name: prefix + 'rig_status',
+//  help: 'rigStatus',
+//  labelNames: ['rig_name', 'rig_status', 'rig_id'],
+//});
 
 const deviceStatusInfo = new Gauge({
   name: prefix + 'device_status_info',
@@ -132,7 +132,7 @@ async function refreshMetrics() {
   devicePower.reset()
   deviceStatusInfo.reset()
   deviceSpeed.reset()
-  rigStatus.reset()
+  //rigStatus.reset()
   try {
     const rawResponse = await nhClient.getMiningRigs()
     const data = rawResponse.data
@@ -145,9 +145,9 @@ async function refreshMetrics() {
     Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
     data.miningRigs.forEach(rig => {
       if (rig.v4 && rig.v4.mmv) {
-        rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
+        rigStatusTime.labels(rig.v4.mmv.workerName, rig.minerStatus, rig.rigId).set(rig.statusTime);
         //test rigstatus
-        rigStatus.labels(rig.v4.mmv.workerName, rig.minerStatus, rig.rigId).set(rig.rigStatus);
+        //rigStatus.labels(rig.v4.mmv.workerName, rig.minerStatus, rig.rigId).set(rig.rigStatus);
 
         (rig.v4.devices || []).forEach((device, index) => {
           console.log("Device", index + 1, ":", device);
