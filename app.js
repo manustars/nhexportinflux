@@ -145,7 +145,7 @@ async function refreshMetrics() {
     data.miningRigs.forEach(rig => {
       if (rig.v4 && rig.v4.mmv) {
         rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.statusTime);
-        rigStatusInfo.labels(rig.v4.mmv.workerName, rig.rigId).set(rig.minerStatus);
+        rigStatusInfo.labels(rig.v4.mmv.workerName, ri.minerStatus, rig.rigId).set(1);
 
         (rig.v4.devices || []).forEach((device, index) => {
           console.log("Device", index + 1, ":", device);
