@@ -5,8 +5,9 @@ const express = require('express')
 require('dotenv').config()
 
 // settings
+
 const port = process.env.PORT || 3000
-const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 300
+const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30
 const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || ''
 const prefix = process.env.NH_METRICS_PREFIX || 'nh_'
 const apiKey = process.env.NH_API_KEY
@@ -114,52 +115,6 @@ const deviceStatusInfo = new Gauge({
   labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
 });
 
-// Nuova Gauge per il conteggio totale dei rig
-const totalMiningRigsGauge = new Gauge({
-  name: prefix + 'total_mining_rigs',
-  help: 'Total number of mining rigs retrieved',
-});
-
-async function fetchAllMiningRigs() {
-  let allMiningRigs = [];
-  const pageSize = 5000; // Imposta il numero di rig per pagina
-
-  try {
-    console.log(`Fetching rigs with size ${pageSize}`);
-
-    // Effettua una singola richiesta per ottenere tutti i rig
-    const rawResponse = await nhClient.getMiningRigs(0, pageSize); // Assumendo che 0 sia la pagina iniziale
-    const data = rawResponse.data;
-
-    // Logga la risposta per il debug
-    console.log('Response Data:', data);
-
-    // Verifica se ci sono rig nella risposta
-    if (data && data.miningRigs && Array.isArray(data.miningRigs)) {
-      allMiningRigs = data.miningRigs;
-      console.log(`Retrieved ${allMiningRigs.length} rigs`); // Logga il numero di rig recuperati
-    } else {
-      console.log(`No rigs found. Stopping retrieval.`);
-    }
-
-    console.log(`Total rigs retrieved: ${allMiningRigs.length}`); // Logga il totale dei rig recuperati
-
-    // Aggiorna le metriche solo se il valore è un numero valido
-    const rigCount = allMiningRigs.length;
-    if (typeof rigCount === 'number' && !isNaN(rigCount)) {
-      updateMetrics(rigCount); // Funzione per aggiornare le metriche
-    } else {
-      console.error('Invalid rig count for metrics update:', rigCount);
-    }
-
-    return allMiningRigs; // Restituisci tutti i rig recuperati
-  } catch (error) {
-    console.error("Error during fetching mining rigs: ", error);
-    throw error; // Rilancia l'errore per una gestione esterna
-  }
-}
-
-
 async function refreshMetrics() {
   minerStatuses.reset()
   devicesStatuses.reset()
@@ -171,12 +126,9 @@ async function refreshMetrics() {
   deviceStatusInfo.reset()
   deviceSpeed.reset()
   try {
-    const allMiningRigs = await fetchAllMiningRigs(); // Usa la funzione paginata
-    // Simula la struttura originale: assegnazione all'oggetto `data` di miningRigs
-    const data = {
-      miningRigs: allMiningRigs //console.log(data)
-    };
-
+    const rawResponse = await nhClient.getMiningRigs()
+    const data = rawResponse.data
+    //console.log(data)
     totalRigs.set(data.totalRigs)
     totalDevices.set(data.totalDevices)
     totalProfitability.set(data.totalProfitability)
@@ -218,7 +170,7 @@ async function refreshMetrics() {
 
         });
       } else {
-        rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime);
+        rigStatusTime.labels(rig.name, rig.rigId).set(rig.statusTime);
         try {
           rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
         } catch (e) {
@@ -271,7 +223,7 @@ async function refreshMetrics() {
   }
 }
 
-// APISs
+// APIS
 
 app.get('/', (req, res) => {
   res.send('This is an empty index, you want to go to the <a href="/metrics">metrics</a> endpoint for data!')
