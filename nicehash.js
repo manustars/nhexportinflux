@@ -130,7 +130,7 @@ class NiceHashClient {
     page: page,
     size: size
   };
-  return this.getRequestPromise('GET', '/main/api/v2/mining/rigs2?size=500', params);
+  return this.getRequestPromise('GET', '/main/api/v2/mining/rigs2?size=50', params);
   }
   //getMiningRigs() {
   //  return this.getRequestPromise('GET', '/main/api/v2/mining/rigs2', {})
