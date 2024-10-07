@@ -167,36 +167,50 @@ async function refreshMetrics() {
     Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]));
     Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]));
 
-    data.miningRigs.forEach(rig => {
-      if (rig.v4 && rig.v4.mmv) {
-        rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus).set(rig.statusTime || 0);
+data.miningRigs.forEach(rig => {
+    // Verifica se 'v4' e 'mmv' sono definiti
+    if (rig.v4 && rig.v4.mmv) {
+        // Assicurati che rig.v4.mmv.workerName e rig.rigId esistano
+        if (rig.v4.mmv.workerName && rig.rigId) {
+            rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus).set(rig.statusTime || 0);
+        }
 
-        (rig.v4.devices || []).forEach((device, index) => {
-          console.log("Device", index + 1, ":", device);
-          const dsv = device.dsv; // DSV details
-          const osv = device.osv; // OSV details
-          try {
-            const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
-            deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
-              .set(temperatureEntry ? parseFloat(temperatureEntry.value) : 0);
+        // Controlla che 'devices' sia definito e sia un array prima di usarlo
+        if (Array.isArray(rig.v4.devices)) {
+            rig.v4.devices.forEach((device, index) => {
+                try {
+                    const temperatureEntry = device.odv?.find(entry => entry.key === "Temperature");
+                    deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
+                        .set(temperatureEntry ? parseFloat(temperatureEntry.value) : 0);
 
-            const loadEntry = device.odv.find(entry => entry.key === "Load");
-            deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
-              .set(loadEntry ? parseFloat(loadEntry.value) : 0);
+                    const loadEntry = device.odv?.find(entry => entry.key === "Load");
+                    deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
+                        .set(loadEntry ? parseFloat(loadEntry.value) : 0);
 
-            const powerEntry = device.odv.find(entry => entry.key === "Power usage");
-            devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
-              .set(powerEntry ? parseFloat(powerEntry.value) : -1); // Set to -1 if not available
-            
-            deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(1);
-            
-            device.speeds.forEach(speed => {
-              deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+                    const powerEntry = device.odv?.find(entry => entry.key === "Power usage");
+                    devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
+                        .set(powerEntry ? parseFloat(powerEntry.value) : -1);
+
+                    deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(1);
+
+                    // Controlla se 'speeds' è definito e sia un array prima di usarlo
+                    if (Array.isArray(device.speeds)) {
+                        device.speeds.forEach(speed => {
+                            deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error while parsing device: ", e);
+                }
             });
-          } catch (e) {
-            console.error("Error while parsing device: ", e);
-          }
-        });
+        } else {
+            console.warn("Devices is not an array or is undefined for rig: ", rig);
+        }
+    } else {
+        // Gestisci la situazione in cui 'v4' o 'mmv' non sono definiti
+        console.warn("Rig v4 or mmv is not defined for rig: ", rig);
+    }
+});
       } else {
         rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime || 0);
         try {
