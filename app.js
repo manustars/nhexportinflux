@@ -101,7 +101,7 @@ const deviceSpeed = new Gauge({
 const rigStatusTime = new Gauge({
   name: prefix + 'rig_status_time',
   help: 'rigStatusTime',
-  labelNames: ['rig_name', 'rig_id', 'rig_status'],
+  labelNames: ['rig_name', 'rig_id', 'rig_status', 'IP'],
 });
 const rigJoinTime = new Gauge({
   name: prefix + 'rig_join_time',
@@ -150,52 +150,54 @@ async function refreshMetrics() {
       Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]));
 
       // Elaborazione delle rig
-      data.miningRigs.forEach(rig => {
-        if (rig.v4 && rig.v4.mmv) {
-          rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus).set(rig.statusTime);
+data.miningRigs.forEach(rig => {
+  if (rig.v4 && rig.v4.mmv) {
+    const ipEntry = rig.v4.odv.find(entry => entry.key === "IP address");
+    const ipAddress = ipEntry ? ipEntry.value : null;
 
-          (rig.v4.devices || []).forEach((device, index) => {
-            try {
-              const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
-              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
-                .set(temperatureEntry ? parseFloat(temperatureEntry.value) : 0);
+    rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus, ipAddress).set(rig.statusTime);
 
-              const loadEntry = device.odv.find(entry => entry.key === "Load");
-              deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
-                .set(loadEntry ? parseFloat(loadEntry.value) : 0);
+    (rig.v4.devices || []).forEach((device, index) => {
+      try {
+        const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
+        deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
+          .set(temperatureEntry ? parseFloat(temperatureEntry.value) : 0);
 
-              const powerEntry = device.odv.find(entry => entry.key === "Power usage");
-              devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
-                .set(powerEntry ? parseFloat(powerEntry.value) : -1);
-              const ipEntry = rig.v4.odv.find(entry => entry.key === "IP address");
-              const ipAddress = ipEntry ? ipEntry.value : null;
+        const loadEntry = device.odv.find(entry => entry.key === "Load");
+        deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
+          .set(loadEntry ? parseFloat(loadEntry.value) : 0);
 
-              deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state, ipAddress)
-                .set(1);
- // Modifica per gestire device.speeds indefinito o non array
-              try {
-                if (Array.isArray(device.speeds)) {
-                  device.speeds.forEach(speed => {
-                    deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix)
-                      .set(+speed.speed);
-                  });
-                } else {
-                  console.warn("Speeds is undefined or not an array for device:", device.dsv.name);
-                }
-              } catch (e) {
-                console.error("Errore durante il parsing del dispositivo: ", e);
-              }
-            } catch (e) {
-              console.error("Errore durante il parsing del dispositivo: ", e);
-            }
-          });
-        } else {
-          rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime);
-          try {
-            rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
-          } catch (e) {
-            console.error("Errore durante il settaggio di rigJoinTime: ", e);
+        const powerEntry = device.odv.find(entry => entry.key === "Power usage");
+        devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
+          .set(powerEntry ? parseFloat(powerEntry.value) : -1);
+
+        deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state, ipAddress)
+          .set(1);
+
+        // Modifica per gestire device.speeds indefinito o non array
+        try {
+          if (Array.isArray(device.speeds)) {
+            device.speeds.forEach(speed => {
+              deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix)
+                .set(+speed.speed);
+            });
+          } else {
+            console.warn("Speeds is undefined or not an array for device:", device.dsv.name);
           }
+        } catch (e) {
+          console.error("Errore durante il parsing del dispositivo: ", e);
+        }
+      } catch (e) {
+        console.error("Errore durante il parsing del dispositivo: ", e);
+      }
+    });
+  } else {
+    rigStatusTime.labels(rig.name, rig.rigId, rig.status, null).set(rig.statusTime); // Gestire il caso senza IP se necessario
+    try {
+      rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
+    } catch (e) {
+      console.error("Errore durante il settaggio di rigJoinTime: ", e);
+    }
 
           (rig.devices || []).forEach(device => {
             try {
