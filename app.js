@@ -124,7 +124,7 @@ async function fetchAllMiningRigs() {
     let totalPages = 1; // Inizializza a 1 per entrare nel ciclo
 
     while (currentPage < totalPages) {
-      console.log(`Fetching rigs from page ${currentPage} with size 250`);
+      console.log(`Fetching rigs from page ${currentPage + 1} with size 250`); // Aggiornato a currentPage + 1 per una migliore leggibilità
       
       const rawResponse = await nhClient.getMiningRigs(currentPage, 250);
       const data = rawResponse.data;
@@ -133,6 +133,12 @@ async function fetchAllMiningRigs() {
       if (data && data.miningRigs) {
         allMiningRigs = allMiningRigs.concat(data.miningRigs);
         console.log(`Retrieved ${data.miningRigs.length} rigs from page ${currentPage + 1}`);
+        
+        // MODIFICA: Verifica se il numero di rig è inferiore a 250 per l'ultima pagina
+        if (data.miningRigs.length < 250) {
+          console.log("Last page retrieved with less than 250 rigs, ending pagination.");
+          totalPages = currentPage + 1; // Imposta totalPages per terminare il ciclo dopo questa pagina
+        }
       } else {
         console.warn(`No mining rigs found on page ${currentPage + 1}`);
       }
@@ -142,9 +148,10 @@ async function fetchAllMiningRigs() {
         totalPages = data.pagination.totalPageCount;
         console.log(`Total pages: ${totalPages}`);
       } else {
-        console.error(`Total page count not found in response for page ${currentPage}`);
+        console.error(`Total page count not found in response for page ${currentPage + 1}`);
         break; // Esci dal ciclo se non possiamo determinare il numero di pagine
       }
+      
       currentPage++; // Incrementa per richiedere la pagina successiva
     }
 
@@ -154,7 +161,6 @@ async function fetchAllMiningRigs() {
     throw error; // Rilancia l'errore per la gestione esterna
   }
 }
-
 
 
 
