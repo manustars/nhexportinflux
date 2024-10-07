@@ -211,7 +211,7 @@ data.miningRigs.forEach(rig => {
         console.warn("Rig v4 or mmv is not defined for rig: ", rig);
     }
 });
-      } else {
+    } else {
         rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime || 0);
         try {
           rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime || 0);
