@@ -5,6 +5,7 @@ const express = require('express')
 require('dotenv').config()
 
 // settings
+
 const port = process.env.PORT || 3000
 const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 300
 const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || ''
@@ -35,6 +36,7 @@ const nhClient = new NicehashJS({
 });
 
 // metrics
+
 const totalRigs = new Gauge({
   name: prefix + 'total_rigs',
   help: 'Number of rigs you own'
@@ -160,41 +162,36 @@ async function fetchAllMiningRigs() {
   }
 }
 
+
+
 async function refreshMetrics() {
-  minerStatuses.reset();
-  devicesStatuses.reset();
-  rigStatusTime.reset();
-  rigJoinTime.reset();
-  deviceTemp.reset();
-  deviceLoad.reset();
-  devicePower.reset();
-  deviceStatusInfo.reset();
-  deviceSpeed.reset();
-  
+  minerStatuses.reset()
+  devicesStatuses.reset()
+  rigStatusTime.reset()
+  rigJoinTime.reset()
+  deviceTemp.reset()
+  deviceLoad.reset()
+  devicePower.reset()
+  deviceStatusInfo.reset()
+  deviceSpeed.reset()
   try {
-    const allMiningRigs = await fetchAllMiningRigs(); // Usa la funzione paginata
+//    const rawResponse = await nhClient.getMiningRigs()
+//    const data = rawResponse.data
+      const allMiningRigs = await fetchAllMiningRigs(); // Usa la funzione paginata
     // Simula la struttura originale: assegnazione all'oggetto `data` di miningRigs
-    const data = {
+      const data = {
       miningRigs: allMiningRigs //console.log(data)
     };
 
-    // MODIFICA: Imposta a 0 se undefined
-    totalRigs.set(data.totalRigs || 0);
-    totalDevices.set(data.totalDevices || 0);
-    totalProfitability.set(data.totalProfitability || 0);
-    unpaidAmount.set(+data.unpaidAmount || 0);
-    
-    Object.keys(data.minerStatuses).forEach(k => {
-      minerStatuses.labels(k).set(data.minerStatuses[k] || 0); // Imposta a 0 se undefined
-    });
-    
-    Object.keys(data.devicesStatuses).forEach(k => {
-      devicesStatuses.labels(k).set(data.devicesStatuses[k] || 0); // Imposta a 0 se undefined
-    });
-
+    totalRigs.set(data.totalRigs)
+    totalDevices.set(data.totalDevices)
+    totalProfitability.set(data.totalProfitability)
+    unpaidAmount.set(+data.unpaidAmount)
+    Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]))
+    Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
     data.miningRigs.forEach(rig => {
       if (rig.v4 && rig.v4.mmv) {
-        rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus).set(rig.statusTime || 0);
+        rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus).set(rig.statusTime);
 
         (rig.v4.devices || []).forEach((device, index) => {
           console.log("Device", index + 1, ":", device);
@@ -202,80 +199,86 @@ async function refreshMetrics() {
           const osv = device.osv; // Dettagli osv
           try {
             const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
-            // MODIFICA: Imposta a 0 se undefined
-            deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry ? parseFloat(temperatureEntry.value) : 0); 
-
+            if (temperatureEntry) {
+              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(temperatureEntry.value));
+            } else {
+              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(0));
+            }
             const loadEntry = device.odv.find(entry => entry.key === "Load");
-            const loadValue = loadEntry ? parseFloat(loadEntry.value) : 0; // MODIFICA: Imposta a 0 se undefined
+            const loadValue = loadEntry ? parseFloat(loadEntry.value) : 0;
             deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(loadValue);
 
             const powerEntry = device.odv.find(entry => entry.key === "Power usage");
-            // MODIFICA: Imposta a -1 se undefined
-            devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(powerEntry ? parseFloat(powerEntry.value) : -1); 
-            
+            if (powerEntry) {
+              devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(powerEntry.value));
+            } else {
+              devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(-1));
+            }            
             deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(parseFloat(1));
-            
             device.speeds.forEach(speed => {
-              deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed || 0); // MODIFICA: Imposta a 0 se undefined
+              deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
             });
           } catch (e) {
             console.error("Errore durante il parsing del dispositivo: ", e);
           }
+
         });
       } else {
-        rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime || 0);
+        rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime);
         try {
-          rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime || 0); // MODIFICA: Imposta a 0 se undefined
+          rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
         } catch (e) {
           console.error("Errore durante il settaggio di rigJoinTime: ", e);
         }
 
         (rig.devices || []).forEach(device => {
           try {
-            deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature || 0); // MODIFICA: Imposta a 0 se undefined
-            deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load || 0); // MODIFICA: Imposta a 0 se undefined
-            devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage || 0); // MODIFICA: Imposta a 0 se undefined
+            deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature);
+            deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load);
+            devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage);
             deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1);
 
             device.speeds.forEach(speed => {
-              deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed || 0); // MODIFICA: Imposta a 0 se undefined
-            });
+              deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed);
+            })
           } catch (e) {
-            console.log("there was an error parsing " + JSON.stringify(device) + " with ", e);
+            console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
           }
-        });
+        })
       }
-    });
+    })
   } catch (e) {
-    console.log("there was an error on request1 ", e);
+    console.log("there was an error on request1 ", e)
   }
 
   try {
-    const rawResponse2 = await nhClient.getWallets();
-    const data2 = rawResponse2.data;
+    const rawResponse2 = await nhClient.getWallets()
+    const data2 = rawResponse2.data
     //console.log(data2)
-    totalBtc.set(+data2.total.totalBalance || 0); // MODIFICA: Imposta a 0 se undefined
+    totalBtc.set(+data2.total.totalBalance)
+    //fiatRate.set(data2.totalBalance)
   } catch (e) {
-    console.log("there was an error on request2 ", e);
+    console.log("there was an error on request2 ", e)
   }
 
   try {
-    const rawResponse3 = await nhClient.getExchangeRates();
-    const data3 = rawResponse3.data;
+    const rawResponse3 = await nhClient.getExchangeRates()
+    const data3 = rawResponse3.data
     //console.log(data3)
     rateGauges.forEach(r => {
       try {
-        r.gauge.set(+data3[r.rate] || 0); // MODIFICA: Imposta a 0 se undefined
+        r.gauge.set(+data3[r.rate])
       } catch (e) {
-        console.log(`given rate ${r.rate} not found in ${data3}`);
+        console.log(`given rate ${r.rate} not found in ${data3}`)
       }
-    });
+    })
   } catch (e) {
-    console.log("there was an error on request3 ", e);
+    console.log("there was an error on request3 ", e)
   }
 }
 
-// APIS
+// APISs
+
 app.get('/', (req, res) => {
   res.send('This is an empty index, you want to go to the <a href="/metrics">metrics</a> endpoint for data!')
 })
@@ -290,6 +293,7 @@ app.get('/metrics', async (req, res) => {
 })
 
 // Start the things
+
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 })
