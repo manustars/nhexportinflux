@@ -101,7 +101,7 @@ const deviceSpeed = new Gauge({
 const rigStatusTime = new Gauge({
   name: prefix + 'rig_status_time',
   help: 'rigStatusTime',
-  labelNames: ['rig_name', 'rig_id', 'rig_status', 'IP'],
+  labelNames: ['rig_name', 'rig_id', 'rig_status'],
 });
 const rigJoinTime = new Gauge({
   name: prefix + 'rig_join_time',
@@ -190,7 +190,7 @@ async function refreshMetrics() {
             }
           });
         } else {
-          rigStatusTime.labels(rig.name, rig.rigId, rig.status, ipAddress).set(rig.statusTime);
+          rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime);
           try {
             rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
           } catch (e) {
