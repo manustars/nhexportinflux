@@ -124,9 +124,9 @@ async function fetchAllMiningRigs() {
     let totalPages = 1; // Inizializza a 1 per entrare nel ciclo
 
     while (currentPage < totalPages) {
-      console.log(`Fetching rigs from page ${currentPage} with size 25`);
+      console.log(`Fetching rigs from page ${currentPage} with size 50`);
       
-      const rawResponse = await nhClient.getMiningRigs(currentPage, 25);
+      const rawResponse = await nhClient.getMiningRigs(currentPage, 50);
       const data = rawResponse.data;
 
       // Controlla se la risposta ha rig e pagination
