@@ -8,7 +8,7 @@ const crypto = require('crypto')
 const API_BASE_URL = 'https://api2.nicehash.com';
 const axiosConfig = {
   baseURL: API_BASE_URL,
-  timeout: 1000 * 300,
+  timeout: 1000 * 600,
 }
 
 class NiceHashClient {
