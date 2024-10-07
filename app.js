@@ -115,53 +115,39 @@ const deviceStatusInfo = new Gauge({
   labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
 });
 
-// Funzione per recuperare tutti i mining rigs, gestendo la paginazione
 async function fetchAllMiningRigs() {
   let allMiningRigs = [];
   let currentPage = 0;
+  const pageSize = 250; // Imposta il numero di rig per pagina
 
   try {
-    let totalPages = 1; // Inizializza a 1 per entrare nel ciclo
+    while (true) {
+      console.log(`Fetching rigs from page ${currentPage + 1} with size ${pageSize}`);
 
-    while (currentPage < totalPages) {
-      console.log(`Fetching rigs from page ${currentPage + 1} with size 250`); // Aggiornato a currentPage + 1 per una migliore leggibilità
-      
-      const rawResponse = await nhClient.getMiningRigs(currentPage, 250);
+      const rawResponse = await nhClient.getMiningRigs(currentPage, pageSize);
       const data = rawResponse.data;
 
-      // Controlla se la risposta ha rig e pagination
-      if (data && data.miningRigs) {
+      // Logga la risposta per il debug
+      console.log('Response Data:', data);
+
+      // Verifica se ci sono rig nella risposta
+      if (data && data.miningRigs && data.miningRigs.length > 0) {
         allMiningRigs = allMiningRigs.concat(data.miningRigs);
         console.log(`Retrieved ${data.miningRigs.length} rigs from page ${currentPage + 1}`);
-        
-        // MODIFICA: Verifica se il numero di rig è inferiore a 250 per l'ultima pagina
-        if (data.miningRigs.length < 250) {
-          console.log("Last page retrieved with less than 250 rigs, ending pagination.");
-          totalPages = currentPage + 1; // Imposta totalPages per terminare il ciclo dopo questa pagina
-        }
       } else {
-        console.warn(`No mining rigs found on page ${currentPage + 1}`);
+        console.log(`No more rigs found on page ${currentPage + 1}. Stopping retrieval.`);
+        break; // Esci se non ci sono più rig da recuperare
       }
 
-      // Aggiorna dinamicamente il numero totale di pagine
-      if (data.pagination && data.pagination.totalPageCount !== undefined) {
-        totalPages = data.pagination.totalPageCount;
-        console.log(`Total pages: ${totalPages}`);
-      } else {
-        console.error(`Total page count not found in response for page ${currentPage + 1}`);
-        break; // Esci dal ciclo se non possiamo determinare il numero di pagine
-      }
-      
-      currentPage++; // Incrementa per richiedere la pagina successiva
+      currentPage++; // Incrementa per recuperare la pagina successiva
     }
 
-    return allMiningRigs; // Restituisce tutti i rig raccolti
+    return allMiningRigs; // Restituisci tutti i rig recuperati
   } catch (error) {
-    console.error("Errore durante il recupero dei mining rigs: ", error);
-    throw error; // Rilancia l'errore per la gestione esterna
+    console.error("Error during fetching mining rigs: ", error);
+    throw error; // Rilancia l'errore per una gestione esterna
   }
 }
-
 
 
 async function refreshMetrics() {
