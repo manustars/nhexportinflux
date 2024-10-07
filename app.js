@@ -119,18 +119,18 @@ const deviceStatusInfo = new Gauge({
 async function fetchAllMiningRigs() {
   let allMiningRigs = [];
   let currentPage = 0;
-  let totalPages = 1;
 
   try {
-    do {
+    let totalPages = 1; // Inizializza a 1 per entrare nel ciclo
+
+    while (currentPage < totalPages) {
       console.log(`Fetching rigs from page ${currentPage} with size 25`);
-      const rawResponse = await nhClient.getMiningRigs(currentPage, 25); // Chiamata aggiornata con pagina e dimensione
+      
+      const rawResponse = await nhClient.getMiningRigs(currentPage, 25);
       const data = rawResponse.data;
 
-      console.log(JSON.stringify(data, null, 2)); // Log della risposta dell'API
-
-      // Controlla se la risposta ha rig
-      if (data.miningRigs) {
+      // Controlla se la risposta ha rig e pagination
+      if (data && data.miningRigs) {
         allMiningRigs = allMiningRigs.concat(data.miningRigs);
         console.log(`Retrieved ${data.miningRigs.length} rigs from page ${currentPage + 1}`);
       } else {
@@ -138,17 +138,23 @@ async function fetchAllMiningRigs() {
       }
 
       // Aggiorna dinamicamente il numero totale di pagine
-      totalPages = data.pagination.totalPageCount;
-      console.log(`Total pages: ${totalPages}`);
+      if (data.pagination && data.pagination.totalPageCount !== undefined) {
+        totalPages = data.pagination.totalPageCount;
+        console.log(`Total pages: ${totalPages}`);
+      } else {
+        console.error(`Total page count not found in response for page ${currentPage}`);
+        break; // Esci dal ciclo se non possiamo determinare il numero di pagine
+      }
       currentPage++; // Incrementa per richiedere la pagina successiva
-    } while (currentPage < totalPages);
+    }
 
     return allMiningRigs; // Restituisce tutti i rig raccolti
   } catch (error) {
     console.error("Errore durante il recupero dei mining rigs: ", error);
-    throw error;
+    throw error; // Rilancia l'errore per la gestione esterna
   }
 }
+
 
 
 
@@ -163,9 +169,14 @@ async function refreshMetrics() {
   deviceStatusInfo.reset()
   deviceSpeed.reset()
   try {
-    const rawResponse = await nhClient.getMiningRigs()
-    const data = rawResponse.data
-    //console.log(data)
+//    const rawResponse = await nhClient.getMiningRigs()
+//    const data = rawResponse.data
+      const allMiningRigs = await fetchAllMiningRigs(); // Usa la funzione paginata
+    // Simula la struttura originale: assegnazione all'oggetto `data` di miningRigs
+      const data = {
+      miningRigs: allMiningRigs //console.log(data)
+    };
+
     totalRigs.set(data.totalRigs)
     totalDevices.set(data.totalDevices)
     totalProfitability.set(data.totalProfitability)
