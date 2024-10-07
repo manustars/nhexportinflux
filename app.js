@@ -131,7 +131,7 @@ async function fetchAllMiningRigs() {
       console.log('Response Data:', data);
 
       // Verifica se ci sono rig nella risposta
-      if (data && data.miningRigs && data.miningRigs.length > 0) {
+      if (data && data.miningRigs && Array.isArray(data.miningRigs) && data.miningRigs.length > 0) {
         allMiningRigs = allMiningRigs.concat(data.miningRigs);
         console.log(`Retrieved ${data.miningRigs.length} rigs from page ${currentPage + 1}`);
       } else {
@@ -142,12 +142,32 @@ async function fetchAllMiningRigs() {
       currentPage++; // Incrementa per recuperare la pagina successiva
     }
 
+    console.log(`Total rigs retrieved: ${allMiningRigs.length}`); // Logga il totale dei rig recuperati
+
+    // Aggiorna le metriche solo se il valore è un numero valido
+    const rigCount = allMiningRigs.length;
+    if (typeof rigCount === 'number' && !isNaN(rigCount)) {
+      updateMetrics(rigCount); // Funzione per aggiornare le metriche
+    } else {
+      console.error('Invalid rig count for metrics update:', rigCount);
+    }
+
     return allMiningRigs; // Restituisci tutti i rig recuperati
   } catch (error) {
     console.error("Error during fetching mining rigs: ", error);
     throw error; // Rilancia l'errore per una gestione esterna
   }
 }
+
+function updateMetrics(count) {
+  try {
+    // Supponendo che tu abbia una Gauge già definita
+    gauge.set(count); // Imposta il valore della metrica
+  } catch (error) {
+    console.error("Error updating metrics:", error);
+  }
+}
+
 
 
 async function refreshMetrics() {
