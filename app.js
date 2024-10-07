@@ -123,17 +123,23 @@ async function fetchAllMiningRigs() {
 
   try {
     do {
+      console.log(`Fetching rigs from page ${currentPage} with size 25`);
       const rawResponse = await nhClient.getMiningRigs(currentPage, 25); // Chiamata aggiornata con pagina e dimensione
       const data = rawResponse.data;
+
+      console.log(JSON.stringify(data, null, 2)); // Log della risposta dell'API
 
       // Controlla se la risposta ha rig
       if (data.miningRigs) {
         allMiningRigs = allMiningRigs.concat(data.miningRigs);
+        console.log(`Retrieved ${data.miningRigs.length} rigs from page ${currentPage + 1}`);
+      } else {
+        console.warn(`No mining rigs found on page ${currentPage + 1}`);
       }
 
       // Aggiorna dinamicamente il numero totale di pagine
       totalPages = data.pagination.totalPageCount;
-      console.log(`Page ${currentPage + 1} of ${totalPages} processed.`);
+      console.log(`Total pages: ${totalPages}`);
       currentPage++; // Incrementa per richiedere la pagina successiva
     } while (currentPage < totalPages);
 
@@ -143,6 +149,7 @@ async function fetchAllMiningRigs() {
     throw error;
   }
 }
+
 
 
 async function refreshMetrics() {
