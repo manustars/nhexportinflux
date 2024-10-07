@@ -7,7 +7,7 @@ require('dotenv').config()
 // settings
 
 const port = process.env.PORT || 3000
-const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30
+const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 300
 const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || ''
 const prefix = process.env.NH_METRICS_PREFIX || 'nh_'
 const apiKey = process.env.NH_API_KEY
