@@ -112,7 +112,7 @@ const rigJoinTime = new Gauge({
 const deviceStatusInfo = new Gauge({
   name: prefix + 'device_status_info',
   help: 'deviceStatusInfo',
-  labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
+  labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status', 'IP'],
 });
 
 async function refreshMetrics() {
@@ -167,8 +167,10 @@ async function refreshMetrics() {
               const powerEntry = device.odv.find(entry => entry.key === "Power usage");
               devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
                 .set(powerEntry ? parseFloat(powerEntry.value) : -1);
+              const ipEntry = rig.v4.odv.find(entry => entry.key === "IP address");
+              const ipAddress = ipEntry ? ipEntry.value : null;
 
-              deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state)
+              deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state, ipAddress)
                 .set(1);
  // Modifica per gestire device.speeds indefinito o non array
               try {
