@@ -140,7 +140,6 @@ async function refreshMetrics() {
       const rawResponse = await nhClient.getMiningRigs({ page: currentPage });
       const data = rawResponse.data;
 
-      console.log("Risposta API:", JSON.stringify(data, null, 2)); // Log della risposta in modo leggibile
       // Accumulo dei valori globali
       totalRigsCount += data.totalRigs;
       totalDevicesCount += data.totalDevices;
