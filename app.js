@@ -115,23 +115,24 @@ const deviceStatusInfo = new Gauge({
   labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
 });
 
+// Funzione per recuperare tutti i mining rigs, gestendo la paginazione
 async function fetchAllMiningRigs() {
   let allMiningRigs = [];
   let currentPage = 0;
   let totalPages = 1;
 
   try {
-    // Continua a richiedere dati fino a quando non hai processato tutte le pagine
     do {
-      const rawResponse = await nhClient.getMiningRigs({ page: currentPage });
+      const rawResponse = await nhClient.getMiningRigs(currentPage, 25); // Chiamata aggiornata con pagina e dimensione
       const data = rawResponse.data;
 
-      // Accumula tutti i rig delle pagine
-      allMiningRigs = allMiningRigs.concat(data.miningRigs);
+      // Controlla se la risposta ha rig
+      if (data.miningRigs) {
+        allMiningRigs = allMiningRigs.concat(data.miningRigs);
+      }
 
       // Aggiorna dinamicamente il numero totale di pagine
       totalPages = data.pagination.totalPageCount;
-
       console.log(`Page ${currentPage + 1} of ${totalPages} processed.`);
       currentPage++; // Incrementa per richiedere la pagina successiva
     } while (currentPage < totalPages);
@@ -142,6 +143,7 @@ async function fetchAllMiningRigs() {
     throw error;
   }
 }
+
 
 async function refreshMetrics() {
   minerStatuses.reset()
