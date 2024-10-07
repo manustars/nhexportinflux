@@ -5,7 +5,6 @@ const express = require('express')
 require('dotenv').config()
 
 // settings
-
 const port = process.env.PORT || 3000
 const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 300
 const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || ''
@@ -115,6 +114,12 @@ const deviceStatusInfo = new Gauge({
   labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
 });
 
+// Nuova Gauge per il conteggio totale dei rig
+const totalMiningRigsGauge = new Gauge({
+  name: prefix + 'total_mining_rigs',
+  help: 'Total number of mining rigs retrieved',
+});
+
 async function fetchAllMiningRigs() {
   let allMiningRigs = [];
   let currentPage = 0;
@@ -146,11 +151,7 @@ async function fetchAllMiningRigs() {
 
     // Aggiorna le metriche solo se il valore è un numero valido
     const rigCount = allMiningRigs.length;
-    if (typeof rigCount === 'number' && !isNaN(rigCount)) {
-      updateMetrics(rigCount); // Funzione per aggiornare le metriche
-    } else {
-      console.error('Invalid rig count for metrics update:', rigCount);
-    }
+    updateMetrics(rigCount); // Funzione per aggiornare le metriche
 
     return allMiningRigs; // Restituisci tutti i rig recuperati
   } catch (error) {
@@ -161,14 +162,17 @@ async function fetchAllMiningRigs() {
 
 function updateMetrics(count) {
   try {
-    // Supponendo che tu abbia una Gauge già definita
-    gauge.set(count); // Imposta il valore della metrica
+    // Imposta il valore della metrica
+    if (typeof count === 'number' && !isNaN(count)) {
+      totalMiningRigsGauge.set(count); // Aggiorna la Gauge con il conteggio dei rig
+      console.log(`Metrics updated with count: ${count}`);
+    } else {
+      console.error('Invalid rig count for metrics update:', count);
+    }
   } catch (error) {
     console.error("Error updating metrics:", error);
   }
 }
-
-
 
 async function refreshMetrics() {
   minerStatuses.reset()
@@ -181,11 +185,9 @@ async function refreshMetrics() {
   deviceStatusInfo.reset()
   deviceSpeed.reset()
   try {
-//    const rawResponse = await nhClient.getMiningRigs()
-//    const data = rawResponse.data
-      const allMiningRigs = await fetchAllMiningRigs(); // Usa la funzione paginata
+    const allMiningRigs = await fetchAllMiningRigs(); // Usa la funzione paginata
     // Simula la struttura originale: assegnazione all'oggetto `data` di miningRigs
-      const data = {
+    const data = {
       miningRigs: allMiningRigs //console.log(data)
     };
 
