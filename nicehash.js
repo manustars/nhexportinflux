@@ -125,13 +125,6 @@ class NiceHashClient {
     return this.getRequestPromise('GET', '/main/api/v2/accounting/hashpowerEarnings/'+currency, params)
   }
 
-  //getMiningRigs(page = 0, size = 25) {
-  //const params = {
-  //  page: page,
-  //  size: size
-  //};
-  //return this.getRequestPromise('GET', '/main/api/v2/mining/rigs2', params);
-  //}
   getMiningRigs() {
     return this.getRequestPromise('GET', '/main/api/v2/mining/rigs2', {})
   }
