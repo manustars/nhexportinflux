@@ -1,31 +1,31 @@
-const NicehashJS = require('./nicehash');
-const client = require('prom-client');
-const Gauge = client.Gauge;
-const express = require('express');
-require('dotenv').config();
+const NicehashJS = require('./nicehash')
+const client = require('prom-client')
+const Gauge = client.Gauge
+const express = require('express')
+require('dotenv').config()
 
 // settings
 
-const port = process.env.PORT || 3000;
-const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30;
-const nodeMetricsPrefix = process.env.NODE_METRICS_PREFIX || '';
-const prefix = process.env.NH_METRICS_PREFIX || 'nh_';
-const apiKey = process.env.NH_API_KEY;
-const apiSecret = process.env.NH_API_SECRET;
-const organizationId = process.env.NH_API_ORG_ID;
-const rates = process.env.NH_RATES ? process.env.NH_RATES.split(',') : ['BTCUSDC', 'BTCEURS'];
+const port = process.env.PORT || 3000
+const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30
+const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || ''
+const prefix = process.env.NH_METRICS_PREFIX || 'nh_'
+const apiKey = process.env.NH_API_KEY
+const apiSecret = process.env.NH_API_SECRET
+const organizationId = process.env.NH_API_ORG_ID
+const rates = process.env.NH_RATES ? process.env.NH_RATES.split(',') : ['BTCUSDC', 'BTCEURS']
 
 if (!apiKey || !apiSecret || !organizationId) {
-  console.log("You need an API key, API secret, and organization ID!");
-  console.log("https://www.nicehash.com/my/settings/keys");
-  return 1;
+  console.log("You need an api key and an api secret and orgId!")
+  console.log("https://www.nicehash.com/my/settings/keys")
+  return 1
 }
 
 // init libs
-const app = express();
+const app = express()
 
 const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics({ prefix: nodeMetricsPrefix });
+collectDefaultMetrics({ prefix: nodeMetricsPrefix })
 
 const register = client.register;
 
@@ -150,47 +150,61 @@ async function fetchAllMiningRigs() {
   }
 }
 
+
+
 async function refreshMetrics() {
-  minerStatuses.reset();
-  devicesStatuses.reset();
-  rigStatusTime.reset();
-  rigJoinTime.reset();
-  deviceTemp.reset();
-  deviceLoad.reset();
-  devicePower.reset();
-  deviceStatusInfo.reset();
-  deviceSpeed.reset();
-
+  minerStatuses.reset()
+  devicesStatuses.reset()
+  rigStatusTime.reset()
+  rigJoinTime.reset()
+  deviceTemp.reset()
+  deviceLoad.reset()
+  devicePower.reset()
+  deviceStatusInfo.reset()
+  deviceSpeed.reset()
   try {
-    // Recupera tutti i mining rigs
-    const miningRigs = await fetchAllMiningRigs();
-
-    // Logica per impostare le metriche dei mining rigs
-    totalRigs.set(miningRigs.length);
-
-    miningRigs.forEach(rig => {
+    const rawResponse = await nhClient.getMiningRigs()
+    const data = rawResponse.data
+    //console.log(data)
+    totalRigs.set(data.totalRigs)
+    totalDevices.set(data.totalDevices)
+    totalProfitability.set(data.totalProfitability)
+    unpaidAmount.set(+data.unpaidAmount)
+    Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]))
+    Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
+    data.miningRigs.forEach(rig => {
       if (rig.v4 && rig.v4.mmv) {
         rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus).set(rig.statusTime);
-        
+
         (rig.v4.devices || []).forEach((device, index) => {
           console.log("Device", index + 1, ":", device);
           const dsv = device.dsv; // Dettagli dsv
           const osv = device.osv; // Dettagli osv
           try {
             const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
-            deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(temperatureEntry ? parseFloat(temperatureEntry.value) : 0);
+            if (temperatureEntry) {
+              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(temperatureEntry.value));
+            } else {
+              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(0));
+            }
             const loadEntry = device.odv.find(entry => entry.key === "Load");
-            deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(loadEntry ? parseFloat(loadEntry.value) : 0);
+            const loadValue = loadEntry ? parseFloat(loadEntry.value) : 0;
+            deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(loadValue);
+
             const powerEntry = device.odv.find(entry => entry.key === "Power usage");
-            devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(powerEntry ? parseFloat(powerEntry.value) : -1);
-            deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(1);
-            
+            if (powerEntry) {
+              devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(powerEntry.value));
+            } else {
+              devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(-1));
+            }            
+            deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(parseFloat(1));
             device.speeds.forEach(speed => {
               deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
             });
           } catch (e) {
             console.error("Errore durante il parsing del dispositivo: ", e);
           }
+
         });
       } else {
         rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime);
@@ -209,64 +223,65 @@ async function refreshMetrics() {
 
             device.speeds.forEach(speed => {
               deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed);
-            });
+            })
           } catch (e) {
-            console.log("there was an error parsing " + JSON.stringify(device) + " with ", e);
+            console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
           }
-        });
+        })
       }
-    });
+    })
   } catch (e) {
-    console.error("there was an error on request1 ", e);
+    console.log("there was an error on request1 ", e)
   }
 
   try {
-    const rawResponse2 = await nhClient.getWallets();
-    const data2 = rawResponse2.data;
-    totalBtc.set(+data2.total.totalBalance);
+    const rawResponse2 = await nhClient.getWallets()
+    const data2 = rawResponse2.data
+    //console.log(data2)
+    totalBtc.set(+data2.total.totalBalance)
+    //fiatRate.set(data2.totalBalance)
   } catch (e) {
-    console.error("there was an error on request2 ", e);
+    console.log("there was an error on request2 ", e)
   }
 
   try {
-    const rawResponse3 = await nhClient.getExchangeRates();
-    const data3 = rawResponse3.data;
+    const rawResponse3 = await nhClient.getExchangeRates()
+    const data3 = rawResponse3.data
+    //console.log(data3)
     rateGauges.forEach(r => {
       try {
-        r.gauge.set(+data3[r.rate]);
+        r.gauge.set(+data3[r.rate])
       } catch (e) {
-        console.log(`given rate ${r.rate} not found in ${data3}`);
+        console.log(`given rate ${r.rate} not found in ${data3}`)
       }
-    });
+    })
   } catch (e) {
-    console.error("there was an error on request3 ", e);
+    console.log("there was an error on request3 ", e)
   }
 }
 
 // APIS
 
 app.get('/', (req, res) => {
-  res.send('This is an empty index, you want to go to the <a href="/metrics">metrics</a> endpoint for data!');
-});
+  res.send('This is an empty index, you want to go to the <a href="/metrics">metrics</a> endpoint for data!')
+})
 
 app.get('/metrics', async (req, res) => {
   try {
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
   } catch (ex) {
-    console.error("Error fetching metrics: ", ex);
     res.status(500).end(ex);
   }
-});
+})
 
 // Start the things
 
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
-});
+  console.log(`Example app listening at http://localhost:${port}`)
+})
 
-// Avvia il processo di aggiornamento delle metriche
-refreshMetrics();
+refreshMetrics()
 
 setInterval(() => {
   refreshMetrics();
