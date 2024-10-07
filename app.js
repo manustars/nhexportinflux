@@ -122,36 +122,35 @@ const totalMiningRigsGauge = new Gauge({
 
 async function fetchAllMiningRigs() {
   let allMiningRigs = [];
-  let currentPage = 0;
-  const pageSize = 250; // Imposta il numero di rig per pagina
+  const pageSize = 5000; // Imposta il numero di rig per pagina
 
   try {
-    while (true) {
-      console.log(`Fetching rigs from page ${currentPage + 1} with size ${pageSize}`);
+    console.log(`Fetching rigs with size ${pageSize}`);
 
-      const rawResponse = await nhClient.getMiningRigs(currentPage, pageSize);
-      const data = rawResponse.data;
+    // Effettua una singola richiesta per ottenere tutti i rig
+    const rawResponse = await nhClient.getMiningRigs(0, pageSize); // Assumendo che 0 sia la pagina iniziale
+    const data = rawResponse.data;
 
-      // Logga la risposta per il debug
-      console.log('Response Data:', data);
+    // Logga la risposta per il debug
+    console.log('Response Data:', data);
 
-      // Verifica se ci sono rig nella risposta
-      if (data && data.miningRigs && Array.isArray(data.miningRigs) && data.miningRigs.length > 0) {
-        allMiningRigs = allMiningRigs.concat(data.miningRigs);
-        console.log(`Retrieved ${data.miningRigs.length} rigs from page ${currentPage + 1}`);
-      } else {
-        console.log(`No more rigs found on page ${currentPage + 1}. Stopping retrieval.`);
-        break; // Esci se non ci sono più rig da recuperare
-      }
-
-      currentPage++; // Incrementa per recuperare la pagina successiva
+    // Verifica se ci sono rig nella risposta
+    if (data && data.miningRigs && Array.isArray(data.miningRigs)) {
+      allMiningRigs = data.miningRigs;
+      console.log(`Retrieved ${allMiningRigs.length} rigs`); // Logga il numero di rig recuperati
+    } else {
+      console.log(`No rigs found. Stopping retrieval.`);
     }
 
     console.log(`Total rigs retrieved: ${allMiningRigs.length}`); // Logga il totale dei rig recuperati
 
     // Aggiorna le metriche solo se il valore è un numero valido
     const rigCount = allMiningRigs.length;
-    updateMetrics(rigCount); // Funzione per aggiornare le metriche
+    if (typeof rigCount === 'number' && !isNaN(rigCount)) {
+      updateMetrics(rigCount); // Funzione per aggiornare le metriche
+    } else {
+      console.error('Invalid rig count for metrics update:', rigCount);
+    }
 
     return allMiningRigs; // Restituisci tutti i rig recuperati
   } catch (error) {
@@ -160,19 +159,6 @@ async function fetchAllMiningRigs() {
   }
 }
 
-function updateMetrics(count) {
-  try {
-    // Imposta il valore della metrica
-    if (typeof count === 'number' && !isNaN(count)) {
-      totalMiningRigsGauge.set(count); // Aggiorna la Gauge con il conteggio dei rig
-      console.log(`Metrics updated with count: ${count}`);
-    } else {
-      console.error('Invalid rig count for metrics update:', count);
-    }
-  } catch (error) {
-    console.error("Error updating metrics:", error);
-  }
-}
 
 async function refreshMetrics() {
   minerStatuses.reset()
