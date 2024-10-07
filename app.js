@@ -1,31 +1,29 @@
-const NicehashJS = require('./nicehash')
-const client = require('prom-client')
-const Gauge = client.Gauge
-const express = require('express')
-require('dotenv').config()
+const NicehashJS = require('./nicehash');
+const client = require('prom-client');
+const Gauge = client.Gauge;
+const express = require('express');
+require('dotenv').config();
 
 // settings
-
-const port = process.env.PORT || 3000
-const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30
-const nodeMetricsPrefix = process.env.NODDE_METRICS_PREFIX || ''
-const prefix = process.env.NH_METRICS_PREFIX || 'nh_'
-const apiKey = process.env.NH_API_KEY
-const apiSecret = process.env.NH_API_SECRET
-const organizationId = process.env.NH_API_ORG_ID
-const rates = process.env.NH_RATES ? process.env.NH_RATES.split(',') : ['BTCUSDC', 'BTCEURS']
+const port = process.env.PORT || 3000;
+const refreshRateSeconds = process.env.REFRESH_RATE_SECONDS || 30;
+const nodeMetricsPrefix = process.env.NODE_METRICS_PREFIX || '';
+const prefix = process.env.NH_METRICS_PREFIX || 'nh_';
+const apiKey = process.env.NH_API_KEY;
+const apiSecret = process.env.NH_API_SECRET;
+const organizationId = process.env.NH_API_ORG_ID;
+const rates = process.env.NH_RATES ? process.env.NH_RATES.split(',') : ['BTCUSDC', 'BTCEURS'];
 
 if (!apiKey || !apiSecret || !organizationId) {
-  console.log("You need an api key and an api secret and orgId!")
-  console.log("https://www.nicehash.com/my/settings/keys")
-  return 1
+  console.log("You need an API key, API secret, and organization ID!");
+  console.log("https://www.nicehash.com/my/settings/keys");
+  return 1;
 }
 
 // init libs
-const app = express()
-
+const app = express();
 const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics({ prefix: nodeMetricsPrefix })
+collectDefaultMetrics({ prefix: nodeMetricsPrefix });
 
 const register = client.register;
 
@@ -36,7 +34,6 @@ const nhClient = new NicehashJS({
 });
 
 // metrics
-
 const totalRigs = new Gauge({
   name: prefix + 'total_rigs',
   help: 'Number of rigs you own'
@@ -47,15 +44,15 @@ const totalDevices = new Gauge({
 });
 const totalProfitability = new Gauge({
   name: prefix + 'total_profitability',
-  help: 'totalProfitability'
+  help: 'Total profitability'
 });
 const unpaidAmount = new Gauge({
   name: prefix + 'unpaid_amount',
-  help: 'unpaidAmount'
+  help: 'Unpaid amount'
 });
 const totalBtc = new Gauge({
   name: prefix + 'total_btc',
-  help: 'totalBtc',
+  help: 'Total BTC',
 });
 const rateGauges = rates.map(r => {
   return {
@@ -68,54 +65,51 @@ const rateGauges = rates.map(r => {
 });
 const minerStatuses = new Gauge({
   name: prefix + 'miner_statuses',
-  help: 'minerStatuses',
+  help: 'Miner statuses',
   labelNames: ['status'],
 });
 const devicesStatuses = new Gauge({
   name: prefix + 'devices_statuses',
-  help: 'devicesStatuses',
+  help: 'Devices statuses',
   labelNames: ['status'],
 });
-
 const deviceTemp = new Gauge({
   name: prefix + 'device_temp',
-  help: 'deviceTemp',
+  help: 'Device temperature',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
 const deviceLoad = new Gauge({
   name: prefix + 'device_load',
-  help: 'deviceLoad',
+  help: 'Device load',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
 const devicePower = new Gauge({
   name: prefix + 'device_power',
-  help: 'devicePower',
+  help: 'Device power usage',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type'],
 });
 const deviceSpeed = new Gauge({
   name: prefix + 'device_speed',
-  help: 'deviceSpeed',
+  help: 'Device speed',
   labelNames: ['rig_name', 'device_name', 'device_id', 'device_type', 'algo', 'suffix'],
 });
-
 const rigStatusTime = new Gauge({
   name: prefix + 'rig_status_time',
-  help: 'rigStatusTime',
+  help: 'Rig status time',
   labelNames: ['rig_name', 'rig_id', 'rig_status'],
 });
 const rigJoinTime = new Gauge({
   name: prefix + 'rig_join_time',
-  help: 'rigJoinTime',
+  help: 'Rig join time',
   labelNames: ['rig_name', 'rig_id'],
 });
-
 const deviceStatusInfo = new Gauge({
   name: prefix + 'device_status_info',
-  help: 'deviceStatusInfo',
+  help: 'Device status info',
   labelNames: ['rig_name', 'rig_softwareversions', 'device_name', 'device_id', 'device_type', 'status'],
 });
 
-// Funzione per recuperare tutti i mining rigs, gestendo la paginazione
+// Function to fetch all mining rigs, handling pagination
 async function fetchAllMiningRigs() {
   let allMiningRigs = [];
   let currentPage = 0;
@@ -124,12 +118,12 @@ async function fetchAllMiningRigs() {
   try {
     do {
       console.log(`Fetching rigs from page ${currentPage} with size 25`);
-      const rawResponse = await nhClient.getMiningRigs(currentPage, 25); // Chiamata aggiornata con pagina e dimensione
+      const rawResponse = await nhClient.getMiningRigs(currentPage, 25); // Updated call with page and size
       const data = rawResponse.data;
 
-      console.log(JSON.stringify(data, null, 2)); // Log della risposta dell'API
+      console.log(JSON.stringify(data, null, 2)); // Log the API response
 
-      // Controlla se la risposta ha rig
+      // Check if the response has rigs
       if (data.miningRigs) {
         allMiningRigs = allMiningRigs.concat(data.miningRigs);
         console.log(`Retrieved ${data.miningRigs.length} rigs from page ${currentPage + 1}`);
@@ -137,134 +131,131 @@ async function fetchAllMiningRigs() {
         console.warn(`No mining rigs found on page ${currentPage + 1}`);
       }
 
-      // Aggiorna dinamicamente il numero totale di pagine
+      // Dynamically update the total number of pages
       totalPages = data.pagination.totalPageCount;
       console.log(`Total pages: ${totalPages}`);
-      currentPage++; // Incrementa per richiedere la pagina successiva
+      currentPage++; // Increment to request the next page
     } while (currentPage < totalPages);
 
-    return allMiningRigs; // Restituisce tutti i rig raccolti
+    return allMiningRigs; // Return all collected rigs
   } catch (error) {
-    console.error("Errore durante il recupero dei mining rigs: ", error);
+    console.error("Error while fetching mining rigs: ", error);
     throw error;
   }
 }
 
-
-
 async function refreshMetrics() {
-  minerStatuses.reset()
-  devicesStatuses.reset()
-  rigStatusTime.reset()
-  rigJoinTime.reset()
-  deviceTemp.reset()
-  deviceLoad.reset()
-  devicePower.reset()
-  deviceStatusInfo.reset()
-  deviceSpeed.reset()
+  minerStatuses.reset();
+  devicesStatuses.reset();
+  rigStatusTime.reset();
+  rigJoinTime.reset();
+  deviceTemp.reset();
+  deviceLoad.reset();
+  devicePower.reset();
+  deviceStatusInfo.reset();
+  deviceSpeed.reset();
+
   try {
-    const rawResponse = await nhClient.getMiningRigs()
-    const data = rawResponse.data
-    //console.log(data)
-    totalRigs.set(data.totalRigs)
-    totalDevices.set(data.totalDevices)
-    totalProfitability.set(data.totalProfitability)
-    unpaidAmount.set(+data.unpaidAmount)
-    Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]))
-    Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]))
+    const rawResponse = await nhClient.getMiningRigs();
+    const data = rawResponse.data;
+    
+    totalRigs.set(data.totalRigs || 0);
+    totalDevices.set(data.totalDevices || 0);
+    totalProfitability.set(data.totalProfitability || 0);
+    unpaidAmount.set(+data.unpaidAmount || 0);
+
+    Object.keys(data.minerStatuses).forEach(k => minerStatuses.labels(k).set(data.minerStatuses[k]));
+    Object.keys(data.devicesStatuses).forEach(k => devicesStatuses.labels(k).set(data.devicesStatuses[k]));
+
     data.miningRigs.forEach(rig => {
       if (rig.v4 && rig.v4.mmv) {
-        rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus).set(rig.statusTime);
+        rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus).set(rig.statusTime || 0);
 
         (rig.v4.devices || []).forEach((device, index) => {
           console.log("Device", index + 1, ":", device);
-          const dsv = device.dsv; // Dettagli dsv
-          const osv = device.osv; // Dettagli osv
+          const dsv = device.dsv; // DSV details
+          const osv = device.osv; // OSV details
           try {
             const temperatureEntry = device.odv.find(entry => entry.key === "Temperature");
-            if (temperatureEntry) {
-              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(temperatureEntry.value));
-            } else {
-              deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(0));
-            }
+            deviceTemp.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
+              .set(temperatureEntry ? parseFloat(temperatureEntry.value) : 0);
+
             const loadEntry = device.odv.find(entry => entry.key === "Load");
-            const loadValue = loadEntry ? parseFloat(loadEntry.value) : 0;
-            deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(loadValue);
+            deviceLoad.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
+              .set(loadEntry ? parseFloat(loadEntry.value) : 0);
 
             const powerEntry = device.odv.find(entry => entry.key === "Power usage");
-            if (powerEntry) {
-              devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(powerEntry.value));
-            } else {
-              devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass).set(parseFloat(-1));
-            }            
-            deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(parseFloat(1));
+            devicePower.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass)
+              .set(powerEntry ? parseFloat(powerEntry.value) : -1); // Set to -1 if not available
+            
+            deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state).set(1);
+            
             device.speeds.forEach(speed => {
               deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix).set(+speed.speed);
             });
           } catch (e) {
-            console.error("Errore durante il parsing del dispositivo: ", e);
+            console.error("Error while parsing device: ", e);
           }
-
         });
       } else {
-        rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime);
+        rigStatusTime.labels(rig.name, rig.rigId, rig.status).set(rig.statusTime || 0);
         try {
-          rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
+          rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime || 0);
         } catch (e) {
-          console.error("Errore durante il settaggio di rigJoinTime: ", e);
+          console.error("Error while setting rigJoinTime: ", e);
         }
 
         (rig.devices || []).forEach(device => {
           try {
-            deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature);
-            deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load);
-            devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage);
+            deviceTemp.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.temperature || 0);
+            deviceLoad.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.load || 0);
+            devicePower.labels(rig.name, device.name, device.id, device.deviceType.enumName).set(device.powerUsage || 0);
             deviceStatusInfo.labels(rig.name, rig.softwareVersions, device.name, device.id, device.deviceType.enumName, device.status.enumName).set(1);
 
             device.speeds.forEach(speed => {
               deviceSpeed.labels(rig.name, device.name, device.id, device.deviceType.enumName, speed.algorithm, speed.displaySuffix).set(+speed.speed);
-            })
+            });
           } catch (e) {
-            console.log("there was an error parsing " + JSON.stringify(device) + " with ", e)
+            console.log("There was an error parsing " + JSON.stringify(device) + " with ", e);
           }
-        })
+        });
       }
-    })
+    });
   } catch (e) {
-    console.log("there was an error on request1 ", e)
+    console.log("There was an error on request1 ", e);
   }
 
+  // Recupera il saldo del portafoglio
   try {
-    const rawResponse2 = await nhClient.getWallets()
-    const data2 = rawResponse2.data
-    //console.log(data2)
-    totalBtc.set(+data2.total.totalBalance)
-    //fiatRate.set(data2.totalBalance)
+    const rawResponse2 = await nhClient.getWallets();
+    const data2 = rawResponse2.data;
+    totalBtc.set(+data2.total.totalBalance || 0); // Imposta a 0 se il bilancio non è disponibile
   } catch (e) {
-    console.log("there was an error on request2 ", e)
+    console.log("There was an error on request2 ", e);
   }
 
+  // Recupera i tassi di cambio
   try {
-    const rawResponse3 = await nhClient.getExchangeRates()
-    const data3 = rawResponse3.data
-    //console.log(data3)
+    const rawResponse3 = await nhClient.getExchangeRates();
+    const data3 = rawResponse3.data;
+
     rateGauges.forEach(r => {
       try {
-        r.gauge.set(+data3[r.rate])
+        r.gauge.set(+data3[r.rate] || 0); // Imposta a 0 se il tasso non è disponibile
       } catch (e) {
-        console.log(`given rate ${r.rate} not found in ${data3}`)
+        console.log(`Given rate ${r.rate} not found in ${JSON.stringify(data3)}`);
       }
-    })
+    });
   } catch (e) {
-    console.log("there was an error on request3 ", e)
+    console.log("There was an error on request3 ", e);
   }
 }
 
 // APIS
 
 app.get('/', (req, res) => {
-  res.send('This is an empty index, you want to go to the <a href="/metrics">metrics</a> endpoint for data!')
-})
+  res.send('This is an empty index, you want to go to the <a href="/metrics">metrics</a> endpoint for data!');
+});
 
 app.get('/metrics', async (req, res) => {
   try {
@@ -273,16 +264,18 @@ app.get('/metrics', async (req, res) => {
   } catch (ex) {
     res.status(500).end(ex);
   }
-})
+});
 
-// Start the things
+// Start the server
 
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
-})
+  console.log(`Example app listening at http://localhost:${port}`);
+});
 
-refreshMetrics()
+// Inizializza il recupero delle metriche
+refreshMetrics();
 
+// Imposta un intervallo per il recupero periodico delle metriche
 setInterval(() => {
   refreshMetrics();
 }, refreshRateSeconds * 1000);
