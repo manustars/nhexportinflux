@@ -171,18 +171,10 @@ async function refreshMetrics() {
               deviceStatusInfo.labels(rig.v4.mmv.workerName, rig.v4.versions[0], device.dsv.name, device.dsv.id, device.dsv.deviceClass, device.mdv.state)
                 .set(1);
 
-                if (Array.isArray(device.speeds)) {
-                      device.speeds.forEach(speed => {
-                        deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix)
-                          .set(+speed.speed);
-                      });
-    } else {
-      console.warn("Speeds is undefined or not an array for device:", device.dsv.name);
-    }
-  } catch (e) {
-    console.error("Errore durante il parsing del dispositivo: ", e);
-  }
-});
+              device.speeds.forEach(speed => {
+                deviceSpeed.labels(rig.v4.mmv.workerName, device.dsv.name, device.dsv.id, device.dsv.deviceClass, speed.algorithm, speed.displaySuffix)
+                  .set(+speed.speed);
+              });
             } catch (e) {
               console.error("Errore durante il parsing del dispositivo: ", e);
             }
