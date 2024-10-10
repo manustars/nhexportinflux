@@ -101,7 +101,7 @@ const deviceSpeed = new Gauge({
 const rigStatusTime = new Gauge({
   name: prefix + 'rig_status_time',
   help: 'rigStatusTime',
-  labelNames: ['rig_name', 'rig_id', 'rig_status', 'IP'],
+  labelNames: ['rig_name', 'rig_id', 'rig_status', 'rig_softwareversions', 'IP'],
 });
 const rigJoinTime = new Gauge({
   name: prefix + 'rig_join_time',
@@ -155,7 +155,7 @@ data.miningRigs.forEach(rig => {
     const ipEntry = rig.v4.odv.find(entry => entry.key === "IP address");
     const ipAddress = ipEntry ? ipEntry.value : null;
 
-    rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus, ipAddress).set(rig.statusTime);
+    rigStatusTime.labels(rig.v4.mmv.workerName, rig.rigId, rig.minerStatus, rig.v4.versions[0], ipAddress).set(rig.statusTime);
 
     (rig.v4.devices || []).forEach((device, index) => {
       try {
@@ -192,7 +192,7 @@ data.miningRigs.forEach(rig => {
       }
     });
   } else {
-    rigStatusTime.labels(rig.name, rig.rigId, rig.status, null).set(rig.statusTime); // Gestire il caso senza IP se necessario
+    rigStatusTime.labels(rig.name, rig.rigId, rig.status, rig.softwareVersions, null).set(rig.statusTime); // Gestire il caso senza IP se necessario
     try {
       rigJoinTime.labels(rig.name, rig.rigId).set(rig.joinTime);
     } catch (e) {
